@@ -16,7 +16,7 @@ export default function SignInPage() {
   const [loading, setLoading] = useState(false);
 
   if (user) {
-    router.replace("/");
+    router.replace(user.wardRole === "Super admin" ? "/super-admin" : "/");
     return null;
   }
 
@@ -27,7 +27,7 @@ export default function SignInPage() {
     try {
       const response = await signIn({ email, password });
       if (response.error || !response.user) throw new Error(response.error || "Unable to sign in.");
-      router.replace("/");
+      router.replace(response.user.wardRole === "Super admin" ? "/super-admin" : "/");
     } catch (signInError) {
       setError(signInError.message || "Sign-in failed. Check your credentials and try again.");
     } finally {
@@ -72,6 +72,7 @@ export default function SignInPage() {
             <button type="submit" className="wh-auth-submit" disabled={loading}>{loading ? "Signing in…" : "Sign in"}</button>
           </form>
           <p className="wh-auth-switch">New to the ward? <Link href="/request-access">Request access</Link></p>
+          <p className="wh-auth-switch">Administrator setup? <Link href="/super-admin/signup">Super Admin signup</Link></p>
           <div className="wh-auth-notice"><span /><p><strong>Authorised staff only.</strong> Patient information is confidential. All activity on this system is recorded and monitored. Sign out when you leave the tablet.</p></div>
         </div>
       </section>

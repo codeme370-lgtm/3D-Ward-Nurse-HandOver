@@ -9,8 +9,8 @@ const requestedRoles = ["Ward staff", "NIC", "Ward manager"];
 export async function GET(request) {
   try {
     const user = await getWardUser(request);
-    if (!hasWardRole(user, ["Ward manager", "Admin"])) {
-      return NextResponse.json({ error: "Only an authorised ward manager or admin can review access requests." }, { status: user ? 403 : 401 });
+    if (!hasWardRole(user, ["Ward manager", "Admin"]) && user?.wardRole !== "Super admin") {
+      return NextResponse.json({ error: "Only an authorised ward manager, admin or super admin can review access requests." }, { status: user ? 403 : 401 });
     }
 
     const requests = await prisma.wardAccessRequest.findMany({

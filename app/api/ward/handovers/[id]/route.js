@@ -51,7 +51,7 @@ export async function PATCH(request, { params }) {
   try {
     const user = await getWardUser(request);
     if (!hasWardRole(user, ["NIC"])) {
-      return NextResponse.json({ error: "Only an active NIC can edit a handover." }, { status: user ? 403 : 401 });
+      return NextResponse.json({ error: "Only an active NIC or All access account can edit a handover." }, { status: user ? 403 : 401 });
     }
     const { id } = await params;
     const body = await request.json();
@@ -60,7 +60,8 @@ export async function PATCH(request, { params }) {
       select: { id: true, status: true, nurseInChargeId: true, payload: true, updatedAt: true },
     });
     if (!record) return NextResponse.json({ error: "Handover not found." }, { status: 404 });
-    if (record.nurseInChargeId !== user.id) {
+    const canEditAnyHandover = user.wardRole === "All access";
+    if (record.nurseInChargeId !== user.id && !canEditAnyHandover) {
       return NextResponse.json({ error: "Only the NIC who started this handover can edit it." }, { status: 403 });
     }
     if (record.status !== "IN_PROGRESS") {
@@ -81,7 +82,12 @@ export async function PATCH(request, { params }) {
     }
     const saved = await prisma.$transaction(async (transaction) => {
       const updated = await transaction.wardHandover.updateMany({
-        where: { id, nurseInChargeId: user.id, status: "IN_PROGRESS", updatedAt: record.updatedAt },
+        where: {
+          id,
+          ...(!canEditAnyHandover ? { nurseInChargeId: user.id } : {}),
+          status: "IN_PROGRESS",
+          updatedAt: record.updatedAt,
+        },
         data: { payload },
       });
       if (updated.count !== 1) return false;
@@ -110,7 +116,7 @@ export async function POST(request, { params }) {
   try {
     const user = await getWardUser(request);
     if (!hasWardRole(user, ["NIC"])) {
-      return NextResponse.json({ error: "Only an active NIC can sign off a handover." }, { status: user ? 403 : 401 });
+      return NextResponse.json({ error: "Only an active NIC or All access account can sign off a handover." }, { status: user ? 403 : 401 });
     }
     const { id } = await params;
     const body = await request.json();
@@ -118,7 +124,8 @@ export async function POST(request, { params }) {
     const incomingPassword = typeof body.incomingPassword === "string" ? body.incomingPassword : "";
     const record = await prisma.wardHandover.findUnique({ where: { id } });
     if (!record) return NextResponse.json({ error: "Handover not found." }, { status: 404 });
-    if (record.nurseInChargeId !== user.id) {
+    const canEditAnyHandover = user.wardRole === "All access";
+    if (record.nurseInChargeId !== user.id && !canEditAnyHandover) {
       return NextResponse.json({ error: "Only the NIC who started this handover can sign it off." }, { status: 403 });
     }
     if (record.status !== "IN_PROGRESS") {
@@ -135,7 +142,7 @@ export async function POST(request, { params }) {
 
     const updated = await prisma.$transaction(async (transaction) => {
       const current = await transaction.wardHandover.findUnique({ where: { id } });
-      if (!current || current.status !== "IN_PROGRESS" || current.nurseInChargeId !== user.id) return { conflict: true };
+      if (!current || current.status !== "IN_PROGRESS" || (!canEditAnyHandover && current.nurseInChargeId !== user.id)) return { conflict: true };
       const payload = jsonObject(current.payload);
       const checks = jsonObject(payload.checks);
       const missingChecks = requiredChecks.filter((check) => checks[check] !== true);
@@ -151,7 +158,12 @@ export async function POST(request, { params }) {
       const pdfRecord = { ...current, payload: signedPayload, status: "SIGNED_OFF", signedOffAt };
       const pdfData = buildHandoverPdf(pdfRecord);
       const saved = await transaction.wardHandover.updateMany({
-        where: { id, nurseInChargeId: user.id, status: "IN_PROGRESS", updatedAt: current.updatedAt },
+        where: {
+          id,
+          ...(!canEditAnyHandover ? { nurseInChargeId: user.id } : {}),
+          status: "IN_PROGRESS",
+          updatedAt: current.updatedAt,
+        },
         data: {
           status: "SIGNED_OFF",
           payload: signedPayload,

@@ -137,6 +137,7 @@ const adminScreens = [
 
 const managerScreens = adminScreens.filter(({ id }) => ["dashboard", "records", "users", "reports", "audit"].includes(id));
 const administratorScreens = adminScreens.filter(({ id }) => ["users", "form-settings", "audit", "retention"].includes(id));
+const allAccessScreens = [...adminScreens, ...nurseScreens];
 
 const screenRoutes = {
   cover: "/handover/cover",
@@ -544,8 +545,8 @@ export default function WardHandoverApp() {
   const autoSaveTimer = useRef(null);
   const autoSaveQueue = useRef(Promise.resolve());
 
-  const isAdmin = role === "Ward manager" || role === "Admin" || role === "IG auditor";
-  const activeScreens = role === "Ward manager" ? managerScreens : role === "Admin" ? administratorScreens : role === "IG auditor" ? adminScreens.filter(({ id }) => id === "audit") : nurseScreens;
+  const isAdmin = role === "Ward manager" || role === "Admin" || role === "IG auditor" || role === "All access";
+  const activeScreens = role === "All access" ? allAccessScreens : role === "Ward manager" ? managerScreens : role === "Admin" ? administratorScreens : role === "IG auditor" ? adminScreens.filter(({ id }) => id === "audit") : nurseScreens;
   const adminWorkspace = isAdmin && activeScreens.some(({ id }) => id === screen);
   const isLocked = activeRecord?.status === "SIGNED_OFF";
   const activeHandoverFormConfig = activeRecord?.payload?.formConfigSnapshot || formConfig;
@@ -750,8 +751,8 @@ export default function WardHandoverApp() {
   }
 
   async function startHandover() {
-    if (role !== "NIC") {
-      notify("Only the Nurse in Charge can start a handover.");
+    if (role !== "NIC" && role !== "All access") {
+      notify("Only an authorised Nurse in Charge can start a handover.");
       return;
     }
     if (activeRecord?.status === "IN_PROGRESS") {
@@ -806,7 +807,7 @@ export default function WardHandoverApp() {
   }
 
   async function loadCurrentHandover() {
-    if (!user || !["NIC", "Ward staff"].includes(role)) return;
+    if (!user || !["NIC", "Ward staff", "All access"].includes(role)) return;
     const date = getLocalDate();
     const shift = form.shift || "Early";
     const data = await wardApi(`/api/ward/handovers?date=${date}&shift=${encodeURIComponent(shift)}&limit=1`);
@@ -833,7 +834,7 @@ export default function WardHandoverApp() {
         delete next[accessRequest.id];
         return next;
       });
-      if (role === "Admin") await loadUsers();
+      if (role === "Admin" || role === "All access") await loadUsers();
       else setAccessRequests((current) => current.filter((item) => item.id !== accessRequest.id));
       notify(decision === "APPROVE" ? "Access request approved and audit logged." : "Access request declined and audit logged.");
     } catch (error) {
@@ -960,23 +961,27 @@ export default function WardHandoverApp() {
     }
   }
 
-  const canEditForm = role === "NIC" && Boolean(activeRecord) && activeRecord.nurseInChargeId === user?.id && !isLocked;
+  const canEditForm = (role === "NIC" || role === "All access") && Boolean(activeRecord) && (role === "All access" || activeRecord.nurseInChargeId === user?.id) && !isLocked;
 
   useEffect(() => {
     if (authLoading || !user) return;
+    if (role === "Super admin") {
+      if (pathname !== "/super-admin") router.replace("/super-admin");
+      return;
+    }
     const routeScreen = routeScreens[pathname];
     if (routeScreen) {
       setScreenState(routeScreen);
       return;
     }
-    setScreen(role === "Ward manager" ? "dashboard" : role === "Admin" ? "users" : role === "IG auditor" ? "audit" : "cover");
-  }, [authLoading, user?.id, pathname]);
+    setScreen(role === "Ward manager" || role === "All access" ? "dashboard" : role === "Admin" ? "users" : role === "IG auditor" ? "audit" : "cover");
+  }, [authLoading, user?.id, pathname, role, router]);
 
   useEffect(() => {
     if (authLoading || !user) return;
     const routeScreen = routeScreens[pathname];
     if (!routeScreen || activeScreens.some(({ id }) => id === routeScreen)) return;
-    const defaultScreen = role === "Ward manager" ? "dashboard" : role === "Admin" ? "users" : role === "IG auditor" ? "audit" : "cover";
+    const defaultScreen = role === "Ward manager" || role === "All access" ? "dashboard" : role === "Admin" ? "users" : role === "IG auditor" ? "audit" : "cover";
     setScreen(defaultScreen);
   }, [authLoading, user?.id, pathname, role, activeScreens]);
 
@@ -1002,7 +1007,7 @@ export default function WardHandoverApp() {
     wardApi("/api/ward/settings")
       .then((data) => {
         if (cancelled) return;
-        if (role === "Admin") setRetentionSettings({ ...initialRetentionSettings, ...data.settings });
+        if (role === "Admin" || role === "All access") setRetentionSettings({ ...initialRetentionSettings, ...data.settings });
         else setRetentionSettings((current) => ({ ...current, autoLockMinutes: data.settings.autoLockMinutes }));
       })
       .catch((error) => { if (!cancelled) notify(error.message); });
@@ -1015,7 +1020,7 @@ export default function WardHandoverApp() {
     async function loadScreen() {
       try {
         setLoadingScreen(true);
-        if (screen === "dashboard" && role === "Ward manager") {
+        if (screen === "dashboard" && (role === "Ward manager" || role === "All access")) {
           const [data, requestData] = await Promise.all([
             wardApi("/api/ward/dashboard"),
             wardApi("/api/ward/access-requests"),
@@ -1024,7 +1029,7 @@ export default function WardHandoverApp() {
             setDashboard(data);
             setAccessRequests(requestData.requests || []);
           }
-        } else if (screen === "users" && role === "Admin") {
+        } else if (screen === "users" && (role === "Admin" || role === "All access")) {
           const [userData, requestData] = await Promise.all([wardApi("/api/ward/users"), wardApi("/api/ward/access-requests")]);
           if (!cancelled) {
             setUsers(userData.users || []);
@@ -1033,7 +1038,7 @@ export default function WardHandoverApp() {
         } else if (screen === "users" && role === "Ward manager") {
           const requestData = await wardApi("/api/ward/access-requests");
           if (!cancelled) setAccessRequests(requestData.requests || []);
-        } else if (screen === "form-settings" && role === "Admin") {
+        } else if (screen === "form-settings" && (role === "Admin" || role === "All access")) {
           const [data, userData] = await Promise.all([wardApi("/api/ward/form-config"), wardApi("/api/ward/users")]);
           if (!cancelled) {
             const published = data.form || initialFormConfig;
@@ -1043,11 +1048,11 @@ export default function WardHandoverApp() {
             setHasFormDraft(Boolean(data.draft));
             setUsers(userData.users || []);
           }
-        } else if (screen === "reports" && role === "Ward manager") {
+        } else if (screen === "reports" && (role === "Ward manager" || role === "All access")) {
           const params = new URLSearchParams({ days: String(reportDays), shift: reportShift, section: reportSection });
           const data = await wardApi(`/api/ward/reports?${params.toString()}`);
           if (!cancelled) setReport(data.report);
-        } else if (screen === "retention" && role === "Admin") {
+        } else if (screen === "retention" && (role === "Admin" || role === "All access")) {
           const data = await wardApi("/api/ward/settings");
           if (!cancelled) {
             setRetentionSettings({ ...initialRetentionSettings, ...data.settings });
@@ -1055,7 +1060,7 @@ export default function WardHandoverApp() {
           }
         } else if (["briefing", "specialist", "signoff"].includes(screen)) {
           await loadCurrentHandover();
-        } else if (screen === "cover" && ["NIC", "Ward staff"].includes(role)) {
+        } else if (screen === "cover" && ["NIC", "Ward staff", "All access"].includes(role)) {
           await loadCurrentHandover();
         }
       } catch (error) {
@@ -1069,7 +1074,7 @@ export default function WardHandoverApp() {
   }, [authLoading, user?.id, role, screen, reportDays, reportShift, reportSection]);
 
   useEffect(() => {
-    if (authLoading || !user || screen !== "records" || role !== "Ward manager") return undefined;
+    if (authLoading || !user || screen !== "records" || (role !== "Ward manager" && role !== "All access")) return undefined;
     let cancelled = false;
     const params = new URLSearchParams({ limit: "15", page: String(currentRecordPage) });
     Object.entries(recordFilters).forEach(([key, value]) => {
@@ -1088,7 +1093,7 @@ export default function WardHandoverApp() {
   }, [authLoading, user?.id, role, screen, currentRecordPage, recordFilters]);
 
   useEffect(() => {
-    if (authLoading || !user || screen !== "audit" || !["Ward manager", "Admin", "IG auditor"].includes(role)) return undefined;
+    if (authLoading || !user || screen !== "audit" || !["Ward manager", "Admin", "IG auditor", "All access"].includes(role)) return undefined;
     let cancelled = false;
     const params = new URLSearchParams({
       days: String(auditFilters.days),
@@ -1209,7 +1214,7 @@ export default function WardHandoverApp() {
             </nav>
           )}
 
-          {screen === "dashboard" && role === "Ward manager" && (
+          {screen === "dashboard" && ["Ward manager", "All access"].includes(role) && (
             <header className="wh-dashboard-header">
               <div><h1>Dashboard</h1><p>Ward 3D overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p></div>
               <div><button className="wh-icon-button wh-dashboard-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle administration menu"><Menu size={17} /></button><button className="wh-button secondary compact" onClick={refreshDashboard} disabled={loadingScreen}><Activity size={14} className={loadingScreen ? "wh-spin" : ""} /> {loadingScreen ? "Refreshing…" : "Refresh"}</button><span className="wh-data-mode">Live data</span></div>
@@ -1224,17 +1229,17 @@ export default function WardHandoverApp() {
               <div className="wh-admin-header-actions">
                 <button className="wh-icon-button wh-dashboard-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle administration menu"><Menu size={16} /></button>
                 {screen === "records" && <button className="wh-button secondary compact" onClick={downloadRecordList}><Download size={15} /> Export list</button>}
-                {screen === "users" && role === "Admin" && <button className="wh-button primary compact" onClick={() => setNewUserDialogOpen(true)}><Plus size={15} /> Add user</button>}
+                {screen === "users" && ["Admin", "All access"].includes(role) && <button className="wh-button primary compact" onClick={() => setNewUserDialogOpen(true)}><Plus size={15} /> Add user</button>}
                 {screen === "form-settings" && <><button className="wh-button secondary compact" onClick={discardFormDraft}><RotateCcw size={14} /> Discard</button><button className="wh-button secondary compact" onClick={saveFormDraft}><Save size={14} /> Save draft</button><button className="wh-button primary compact" onClick={publishFormConfiguration}><CheckCircle2 size={14} /> Publish changes</button></>}
                 {screen === "reports" && <><button className="wh-button secondary compact" onClick={exportReportPdf}><Printer size={14} /> Export PDF</button><button className="wh-button primary compact" onClick={exportReportExcel}><Download size={14} /> Export Excel</button></>}
                 {screen === "audit" && <button className="wh-button secondary compact" onClick={downloadAuditLog} disabled={role === "IG auditor"}><Download size={14} /> Export log</button>}
-                {screen === "retention" && role === "Admin" && <button className="wh-button primary compact" onClick={saveRetentionSettings}><CheckCircle2 size={14} /> Save settings</button>}
+                {screen === "retention" && ["Admin", "All access"].includes(role) && <button className="wh-button primary compact" onClick={saveRetentionSettings}><CheckCircle2 size={14} /> Save settings</button>}
                 <span className="wh-data-mode">Live data</span>
               </div>
             </header>
           )}
           <div className={`wh-main ${["briefing", "specialist", "signoff"].includes(screen) ? "wh-reference-main" : ""} ${screen === "dashboard" ? "wh-dashboard-main-area" : adminWorkspace ? "wh-admin-page-main" : ""}`}>
-            {screen === "cover" && (!isAdmin || role === "Ward manager") && (
+            {screen === "cover" && (!isAdmin || ["Ward manager", "All access"].includes(role)) && (
               <section className="wh-cover">
                 <div className="wh-cover-hero">
                   <div className="wh-cover-copy">
@@ -1257,8 +1262,8 @@ export default function WardHandoverApp() {
                     </div>
                   </div>
                   <div className="wh-cover-actions">
-                    {role === "NIC" ? <button className="wh-button primary" onClick={startHandover}><ClipboardCheck size={18} /> {activeRecord?.status === "IN_PROGRESS" ? "Resume handover" : "Start new handover"} <ArrowRight size={17} /></button> : <button className="wh-button primary" onClick={() => role === "Ward manager" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("There is no current handover available to view.")}><FileText size={18} /> View current handover</button>}
-                    <button className="wh-button secondary" onClick={() => role === "Ward manager" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("No current handover has been started for this shift.")}><FileText size={18} /> {role === "Ward manager" ? "Open handover records" : "Open current shift"}</button>
+                    {role === "NIC" || role === "All access" ? <button className="wh-button primary" onClick={startHandover}><ClipboardCheck size={18} /> {activeRecord?.status === "IN_PROGRESS" ? "Resume handover" : "Start new handover"} <ArrowRight size={17} /></button> : <button className="wh-button primary" onClick={() => role === "Ward manager" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("There is no current handover available to view.")}><FileText size={18} /> View current handover</button>}
+                    <button className="wh-button secondary" onClick={() => role === "Ward manager" || role === "All access" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("No current handover has been started for this shift.")}><FileText size={18} /> {role === "Ward manager" || role === "All access" ? "Open handover records" : "Open current shift"}</button>
                   </div>
                 </div>
                 <div className="wh-cover-footer">
@@ -1268,7 +1273,7 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "briefing" && !isAdmin && (
+            {screen === "briefing" && (!isAdmin || role === "All access") && (
               <section className="wh-reference-form wh-briefing-page">
                 <div className="wh-form-grid wh-briefing-grid">
                   <article className="wh-panel wh-briefing-overview" hidden={!isFormSectionEnabled("Patient & Staffing Overview")}>
@@ -1325,7 +1330,7 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "specialist" && !isAdmin && (
+            {screen === "specialist" && (!isAdmin || role === "All access") && (
               <section className="wh-reference-form wh-specialist-page">
                 <div className="wh-form-grid two-col wh-specialist-grid">
                   <StructuredPanel className="wh-specialist-surgery" title="Pre & Post Surgery" caption="Use bed numbers, not patient names." icon="clinical" fields={[{ key: "nbm", label: "NBM" }, { key: "imaging", label: "Imaging" }, { key: "emergencyTheatre", label: "Emergency Theatre" }, { key: "tci", label: "TCI (Day before Surgery)" }]} values={form.surgicalDetails} disabled={!canEditForm} onChange={(key, value) => updateNestedForm("surgicalDetails", key, value)} tone="violet" hidden={!isFormSectionEnabled("Pre & Post Surgery")} />
@@ -1346,7 +1351,7 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "signoff" && !isAdmin && (
+            {screen === "signoff" && (!isAdmin || role === "All access") && (
               <section className="wh-reference-form wh-signoff-page">
                 <div className="wh-signoff-layout">
                   <article className="wh-wecare-panel">
@@ -1396,7 +1401,7 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "dashboard" && role === "Ward manager" && (
+            {screen === "dashboard" && ["Ward manager", "All access"].includes(role) && (
               <section className="wh-live-dashboard">
                 <div className="wh-dashboard-metrics">
                   <article className="wh-dashboard-metric green"><span>HANDOVERS TODAY</span><strong>{dashboard?.metrics?.handoversToday || 0} / {dashboard?.metrics?.handoversExpected || 3}</strong><small>{dashboard?.metrics?.handoversExpected - dashboard?.metrics?.handoversToday > 0 ? `${dashboard.metrics.handoversExpected - dashboard.metrics.handoversToday} shift${dashboard.metrics.handoversExpected - dashboard.metrics.handoversToday === 1 ? "" : "s"} pending` : "All shifts recorded"}</small></article>
@@ -1527,11 +1532,11 @@ export default function WardHandoverApp() {
             {screen === "users" && isAdmin && (
               <section className="wh-users-layout">
                 <div className="wh-users-main">
-                  {role === "Admin" && <article className="wh-panel wh-admin-panel wh-users-panel">
+                  {["Admin", "All access"].includes(role) && <article className="wh-panel wh-admin-panel wh-users-panel">
                     <div className="wh-admin-panel-heading"><strong>USERS</strong><span>Ward 3D accounts</span></div>
                     <div className="wh-user-filterbar">
                       <label className="wh-user-search"><Search size={15} /><input placeholder="Search staff by name or role…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-                      <select aria-label="Filter users by role" value={userRoleFilter} onChange={(event) => setUserRoleFilter(event.target.value)}><option>All</option>{["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor"].map((item) => <option key={item}>{item}</option>)}</select>
+                      <select aria-label="Filter users by role" value={userRoleFilter} onChange={(event) => setUserRoleFilter(event.target.value)}><option>All</option>{["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor", "All access"].map((item) => <option key={item}>{item}</option>)}</select>
                     </div>
                     <div className="wh-table-wrap"><table className="wh-table wh-users-table">
                       <thead><tr><th>NAME</th><th>ROLE</th><th>LAST SIGN-IN</th><th>STATUS</th><th /></tr></thead>
@@ -1546,7 +1551,7 @@ export default function WardHandoverApp() {
                           <td><div className="wh-user-actions">
                             {editingUserId === wardUser.id
                               ? <><button disabled={wardUser.id === user.id} onClick={() => changeUser(wardUser.id, "role", editingUserRole)}>Save</button><button onClick={() => setEditingUserId(null)}>Cancel</button></>
-                              : <button disabled={wardUser.id === user.id} onClick={() => { setEditingUserId(wardUser.id); setEditingUserRole(wardUser.role); }}>Edit</button>}
+                              : <button disabled={wardUser.id === user.id || wardUser.role === "All access"} onClick={() => { setEditingUserId(wardUser.id); setEditingUserRole(wardUser.role); }}>Edit</button>}
                             <button className={wardUser.accountStatus === "ACTIVE" ? "danger" : ""} disabled={wardUser.id === user.id} onClick={() => changeUser(wardUser.id, wardUser.accountStatus === "ACTIVE" ? "disable" : "enable")}>{wardUser.accountStatus === "ACTIVE" ? "Disable" : "Enable"}</button>
                           </div></td>
                         </tr>
@@ -1558,16 +1563,16 @@ export default function WardHandoverApp() {
                   <article className="wh-panel wh-admin-panel wh-permissions-card">
                     <div className="wh-admin-panel-heading"><strong>ROLE PERMISSIONS</strong><span>Server-enforced access matrix</span></div>
                     <div className="wh-table-wrap"><table className="wh-table wh-permissions-table">
-                      <thead><tr><th>PERMISSION</th>{["NIC", "STAFF", "MGR", "ADMIN", "IG"].map((item) => <th key={item}>{item}</th>)}</tr></thead>
+                      <thead><tr><th>PERMISSION</th>{["NIC", "STAFF", "MGR", "ADMIN", "IG", "ALL ACCESS"].map((item) => <th key={item}>{item}</th>)}</tr></thead>
                       <tbody>{[
-                        ["Fill in & sign off handover", [1, 0, 0, 0, 0]],
-                        ["View current handover", [1, 1, 1, 0, 0]],
-                        ["View past records", [0, 0, 1, 0, 0]],
-                        ["Reports", [0, 0, 1, 0, 0]],
-                        ["Manage users", [0, 0, 0, 1, 0]],
-                        ["Edit form settings", [0, 0, 0, 1, 0]],
-                        ["View audit log", [0, 0, 1, 1, 1]],
-                        ["See patient notes", [1, 1, 1, 0, 0]],
+                        ["Fill in & sign off handover", [1, 0, 0, 0, 0, 1]],
+                        ["View current handover", [1, 1, 1, 0, 0, 1]],
+                        ["View past records", [0, 0, 1, 0, 0, 1]],
+                        ["Reports", [0, 0, 1, 0, 0, 1]],
+                        ["Manage users", [0, 0, 0, 1, 0, 1]],
+                        ["Edit form settings", [0, 0, 0, 1, 0, 1]],
+                        ["View audit log", [0, 0, 1, 1, 1, 1]],
+                        ["See patient notes", [1, 1, 1, 0, 0, 1]],
                       ].map(([label, permissions]) => <tr key={label}><td>{label}</td>{permissions.map((allowed, index) => <td key={`${label}-${index}`}>{allowed ? <Check size={14} aria-label="Allowed" /> : <span aria-label="Not allowed">–</span>}</td>)}</tr>)}</tbody>
                     </table></div>
                   </article>
@@ -1577,12 +1582,12 @@ export default function WardHandoverApp() {
                       <thead><tr><th>REQUEST</th><th>ROLE ASKED</th><th>STATUS</th><th /></tr></thead>
                       <tbody>{accessRequests.map((request) => {
                         const grantedRole = accessRoleOverrides[request.id] || request.requestedRole;
-                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small><small className="wh-table-sub">Staff no. {request.staffNumber} · Approver: {request.approverName}</small><small className="wh-table-sub">Requested {formatDateTime(request.requestedAt)}</small></td><td><span className={`wh-role-pill ${request.requestedRole.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.requestedRole}</span><select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin"}>Ward manager</option></select></td><td><span className="wh-record-state pending">{request.status}</span></td><td><div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div></td></tr>;
+                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small><small className="wh-table-sub">Staff no. {request.staffNumber} · Approver: {request.approverName}</small><small className="wh-table-sub">Requested {formatDateTime(request.requestedAt)}</small></td><td><span className={`wh-role-pill ${request.requestedRole.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.requestedRole}</span><select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin" && role !== "All access"}>Ward manager</option></select></td><td><span className="wh-record-state pending">{request.status}</span></td><td><div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div></td></tr>;
                       })}</tbody>
                     </table>{!accessRequests.length && <div className="wh-empty">No access requests are waiting.</div>}</div>
                   </article>
                 </div>
-                {newUserDialogOpen && role === "Admin" && <div className="wh-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingUser) setNewUserDialogOpen(false); }}>
+                {newUserDialogOpen && ["Admin", "All access"].includes(role) && <div className="wh-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingUser) setNewUserDialogOpen(false); }}>
                   <form className="wh-record-modal wh-add-user-dialog" role="dialog" aria-modal="true" aria-labelledby="wh-add-user-title" onSubmit={createWardUser}>
                     <div className="wh-panel-heading between"><div><p className="wh-eyebrow">WARD 3D · ACCESS CONTROL</p><h2 id="wh-add-user-title">Add user</h2></div><button type="button" className="wh-icon-button" aria-label="Close dialog" disabled={savingUser} onClick={() => setNewUserDialogOpen(false)}><X size={18} /></button></div>
                     <label className="wh-field"><span>Full name</span><input required maxLength={120} value={newUser.name} onChange={(event) => setNewUser((current) => ({ ...current, name: event.target.value }))} /></label>
@@ -1646,7 +1651,7 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "reports" && role === "Ward manager" && (
+            {screen === "reports" && ["Ward manager", "All access"].includes(role) && (
               <section className="wh-reports-page">
                 <form className="wh-admin-filterbar wh-report-filterbar" onSubmit={(event) => event.preventDefault()}>
                   <label><span className="sr-only">Reporting period</span><select value={reportDays} onChange={(event) => setReportDays(Number(event.target.value))}><option value={7}>Period: Last 7 days</option><option value={30}>Period: Last 30 days</option><option value={90}>Period: Last 90 days</option><option value={365}>Period: Last 12 months</option></select></label>
@@ -1712,13 +1717,13 @@ export default function WardHandoverApp() {
               </section>
             )}
 
-            {screen === "retention" && role === "Admin" && (
+            {screen === "retention" && ["Admin", "All access"].includes(role) && (
               <section className="wh-retention-page">
                 <article className="wh-panel wh-admin-panel wh-security-settings-card">
                   <div className="wh-admin-panel-heading"><strong>DATA PROTECTION &amp; SECURITY SETTINGS</strong><span>Changes are logged</span></div>
                   <div className="wh-security-settings-body">
-                    <div className="wh-security-setting-row"><span><strong>Retention period</strong><small>Handover records are reviewed after the selected period, following Trust policy.</small></span><select aria-label="Retention period" disabled={role !== "Admin"} value={retentionSettings.retentionYears} onChange={(event) => setRetentionSettings((current) => ({ ...current, retentionYears: Number(event.target.value) }))}>{[1, 2, 3, 5, 6, 7, 8, 10, 12, 15, 20, 30].map((years) => <option value={years} key={years}>{years} years</option>)}</select></div>
-                    <div className="wh-security-setting-row"><span><strong>Auto-lock after inactivity</strong><small>The screen locks and the user must sign in again.</small></span><select aria-label="Automatic session lock" disabled={role !== "Admin"} value={retentionSettings.autoLockMinutes} onChange={(event) => setRetentionSettings((current) => ({ ...current, autoLockMinutes: Number(event.target.value) }))}>{[2, 5, 10, 15, 30, 60].map((minutes) => <option value={minutes} key={minutes}>{minutes} minutes</option>)}</select></div>
+                    <div className="wh-security-setting-row"><span><strong>Retention period</strong><small>Handover records are reviewed after the selected period, following Trust policy.</small></span><select aria-label="Retention period" disabled={role !== "Admin" && role !== "All access"} value={retentionSettings.retentionYears} onChange={(event) => setRetentionSettings((current) => ({ ...current, retentionYears: Number(event.target.value) }))}>{[1, 2, 3, 5, 6, 7, 8, 10, 12, 15, 20, 30].map((years) => <option value={years} key={years}>{years} years</option>)}</select></div>
+                    <div className="wh-security-setting-row"><span><strong>Auto-lock after inactivity</strong><small>The screen locks and the user must sign in again.</small></span><select aria-label="Automatic session lock" disabled={role !== "Admin" && role !== "All access"} value={retentionSettings.autoLockMinutes} onChange={(event) => setRetentionSettings((current) => ({ ...current, autoLockMinutes: Number(event.target.value) }))}>{[2, 5, 10, 15, 30, 60].map((minutes) => <option value={minutes} key={minutes}>{minutes} minutes</option>)}</select></div>
                     <div className="wh-security-setting-row policy"><span><strong>Block screenshots / downloads</strong><small>Browser screenshots cannot be blocked here. Signed PDF downloads remain available to authorised users.</small></span><span className="wh-policy-status">Not enforced</span></div>
                     <div className="wh-security-setting-row policy"><span><strong>Exports hide patient identifiers</strong><small>Reports and exports contain aggregate counts only.</small></span><span className="wh-policy-status enabled">Enforced</span></div>
                     <div className="wh-security-setting-row policy"><span><strong>Require incoming NIC sign-off</strong><small>Two-person verification is required by the handover API.</small></span><span className="wh-policy-status enabled">Required</span></div>

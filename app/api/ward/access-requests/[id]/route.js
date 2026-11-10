@@ -7,8 +7,8 @@ const allowedRoles = ["Ward staff", "NIC", "Ward manager"];
 export async function PATCH(request, { params }) {
   try {
     const user = await getWardUser(request);
-    if (!hasWardRole(user, ["Ward manager", "Admin"])) {
-      return NextResponse.json({ error: "Only an authorised ward manager or admin can decide access requests." }, { status: user ? 403 : 401 });
+    if (!hasWardRole(user, ["Ward manager", "Admin"]) && user?.wardRole !== "Super admin") {
+      return NextResponse.json({ error: "Only an authorised ward manager, admin or super admin can decide access requests." }, { status: user ? 403 : 401 });
     }
 
     const { id } = await params;
@@ -49,7 +49,11 @@ export async function PATCH(request, { params }) {
     }
 
     const grantedRole = typeof body.grantedRole === "string" ? body.grantedRole : accessRequest.requestedRole;
-    if (!allowedRoles.includes(grantedRole) || (grantedRole === "Ward manager" && user.wardRole !== "Admin")) {
+    if (
+      ![...allowedRoles, "All access"].includes(grantedRole)
+      || (grantedRole === "Ward manager" && !["Admin", "Super admin", "All access"].includes(user.wardRole))
+      || (grantedRole === "All access" && user.wardRole !== "Super admin")
+    ) {
       return NextResponse.json({ error: "You cannot grant the selected role." }, { status: 403 });
     }
 

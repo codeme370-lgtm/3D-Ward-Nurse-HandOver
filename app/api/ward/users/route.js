@@ -14,7 +14,7 @@ export async function GET(request) {
     }
 
     const users = await prisma.user.findMany({
-      where: { role: { in: ["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor", "nurse in charge", "ward staff", "ward manager", "admin", "ig auditor"] } },
+      where: { role: { in: ["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor", "All access", "nurse in charge", "ward staff", "ward manager", "admin", "ig auditor", "all access"] } },
       select: { id: true, name: true, email: true, staffNumber: true, role: true, accountStatus: true, lastSignInAt: true, createdAt: true },
       orderBy: { name: "asc" },
     });

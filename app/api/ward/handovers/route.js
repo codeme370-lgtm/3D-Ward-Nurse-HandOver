@@ -134,7 +134,7 @@ export async function POST(request) {
   try {
     const user = await getWardUser(request);
     if (!hasWardRole(user, ["NIC"])) {
-      return NextResponse.json({ error: "Only an active NIC can start a handover." }, { status: user ? 403 : 401 });
+      return NextResponse.json({ error: "Only an active NIC or All access account can start a handover." }, { status: user ? 403 : 401 });
     }
 
     const body = await request.json();

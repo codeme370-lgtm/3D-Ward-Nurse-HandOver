@@ -3811,6 +3811,73 @@
   }
 }
 
+.wh-super-admin-page {
+  min-height: 100vh;
+  background: #f3f6fb;
+}
+
+.wh-super-admin-page .wh-brand {
+  text-decoration: none;
+}
+
+.wh-super-admin-content {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 26px 30px 48px;
+}
+
+.wh-super-admin-content .wh-dashboard-header {
+  margin-bottom: 20px;
+}
+
+.wh-super-admin-requests {
+  padding: 18px;
+}
+
+.wh-super-admin-requests .wh-requests-table td {
+  vertical-align: middle;
+}
+
+.wh-super-admin-requests .wh-requests-table select {
+  display: block;
+  min-width: 140px;
+  margin-top: 9px;
+}
+
+.wh-super-admin-requests .wh-user-actions {
+  flex-wrap: wrap;
+}
+
+.wh-super-admin-requests .wh-user-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wh-super-admin-success {
+  margin: 12px 0;
+  border: 1px solid #b9e4ce;
+  border-radius: 7px;
+  background: #effaf4;
+  padding: 10px 12px;
+  color: #17653e;
+}
+
+.wh-super-admin-loading {
+  padding: 32px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .wh-super-admin-content {
+    padding: 18px 12px 32px;
+  }
+
+  .wh-super-admin-requests {
+    padding: 12px;
+  }
+}
+
 @media (max-width: 420px) {
   .wh-brand-mark {
     display: none;
