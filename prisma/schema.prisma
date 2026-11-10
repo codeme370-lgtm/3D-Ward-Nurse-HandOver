@@ -6,408 +6,94 @@ datasource db {
   provider = "postgresql"
 }
 
-enum OrderStatus {
-  ORDER_PLACED
-  PROCESSING
-  SHIPPED
-  DELIVERED
-}
-
-enum PaymentMethod {
-  COD
-  PAYSTACK
-}
-
-enum PaymentStatus {
-  PENDING
-  AUTHORIZED
-  FAILED
-}
-
 model User {
-  id                      String                 @id @default(cuid())
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  staffNumber   String?   @unique
+  password      String
+  role          String    @default("Ward staff")
+  accountStatus String    @default("ACTIVE")
+  lastSignInAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model WardAccessRequest {
+  id                      String   @id @default(cuid())
   name                    String
-  email                   String                 @unique
-  image                   String                 @default("")
-  password                String
-  role                    String                 @default("customer")
-  authType                String                 @default("local")
-  cart                    Json                   @default("{}")
-  createdAt               DateTime               @default(now())
-  updatedAt               DateTime               @updatedAt
-  Address                 Address[]
-  addressChangeAlerts     AddressChangeAlert[]
-  deliveryReports         DeliveryReport[]
-  buyerOrders             Order[]                @relation("BuyerRelation")
-  ratings                 Rating[]
-  sellerReviews           SellerReview[]
-  store                   Store?
-  productReviews          ProductReview[]
-  blogPosts               BlogPost[]
-  newsletterSubscriptions NewsletterSubscriber[]
+  staffNumber             String   @unique
+  email                   String   @unique
+  requestedRole           String
+  ward                    String   @default("Ward 3D")
+  approverName            String
+  passwordHash            String
+  trainingCompleted       Boolean  @default(false)
+  confidentialityAccepted Boolean  @default(false)
+  acceptedAt              DateTime
+  status                  String   @default("PENDING")
+  grantedRole             String?
+  decisionReason          String?
+  approvedById            String?
+  requestedAt             DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([status, requestedAt])
 }
 
-model Brand {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  description String?
-  image       String?
-  status      String    @default("ACTIVE")
-  isFeatured  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  products    Product[]
-}
-
-model Category {
-  id          String     @id @default(cuid())
-  name        String     @unique
-  slug        String     @unique
-  description String?
-  image       String?
-  parentId    String?
-  status      String     @default("ACTIVE")
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryTree")
-  products    Product[]
-  blogPosts   BlogPost[]
-}
-
-model Product {
-  id             String          @id @default(cuid())
-  name           String
-  description    String
-  mrp            Float
-  price          Float
-  images         String[]
-  category       String
-  categoryId     String?
-  brandId        String?
-  inStock        Boolean         @default(true)
-  quantity       Int             @default(0)
-  storeId        String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  orderItems     OrderItem[]
-  store          Store           @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  rating         Rating[]
-  productReviews ProductReview[]
-  categoryRef    Category?       @relation(fields: [categoryId], references: [id])
-  brand          Brand?          @relation(fields: [brandId], references: [id])
-}
-
-model ProductReview {
-  id        String   @id @default(cuid())
-  rating    Int
-  review    String
-  productId String
-  userId    String
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Order {
-  id                  String               @id @default(cuid())
-  total               Float
-  status              OrderStatus          @default(ORDER_PLACED)
-  userId              String
-  storeId             String
-  addressId           String
-  isPaid              Boolean              @default(false)
-  paymentMethod       PaymentMethod
-  paymentStatus       PaymentStatus        @default(PENDING)
-  paystackReference   String?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  isCouponUsed        Boolean              @default(false)
-  coupon              Json                 @default("{}")
-  deliveryDeadline    DateTime?
-  deliveryWindowHours Int?
-  deliveryConfirmed   Boolean              @default(false)
-  addressChangeAlerts AddressChangeAlert[]
-  deliveryReports     DeliveryReport[]
-  address             Address              @relation(fields: [addressId], references: [id])
-  store               Store                @relation(fields: [storeId], references: [id])
-  user                User                 @relation("BuyerRelation", fields: [userId], references: [id])
-  orderItems          OrderItem[]
-  ratings             Rating[]
-}
-
-model OrderItem {
-  orderId   String
-  productId String
-  quantity  Int
-  price     Float
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product @relation(fields: [productId], references: [id])
-
-  @@id([orderId, productId])
-}
-
-model Rating {
-  id        String   @id @default(cuid())
-  rating    Int
-  review    String
-  userId    String
-  productId String
-  orderId   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, productId, orderId])
-}
-
-model Address {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  street    String
-  city      String
-  phone     String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Order     Order[]
-}
-
-model Coupon {
-  code        String   @id
-  description String
-  discount    Float
-  forNewUser  Boolean
-  forMember   Boolean  @default(false)
-  isPublic    Boolean
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-}
-
-model Store {
-  id                  String               @id @default(cuid())
-  userId              String               @unique
-  name                String
-  description         String
-  username            String               @unique
-  address             String
-  status              String               @default("pending")
-  isActive            Boolean              @default(false)
-  logo                String
-  email               String
-  contact             String
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  averageRating       Float                @default(0)
-  avgResponseTime     Int                  @default(24)
-  isVerified          Boolean              @default(false)
-  productsSold        Int                  @default(0)
-  returnRate          Float                @default(0)
-  totalFollowers      Int                  @default(0)
-  totalReviews        Int                  @default(0)
-  addressChangeAlerts AddressChangeAlert[]
-  deliveryReports     DeliveryReport[]
-  Order               Order[]
-  Product             Product[]
-  searchOptimization  SearchOptimization?
-  sellerReviews       SellerReview[]
-  user                User                 @relation(fields: [userId], references: [id])
-  followers           StoreFollower[]
-}
-
-model DeliveryReport {
-  id        String   @id @default(cuid())
-  orderId   String
-  storeId   String
-  userId    String
-  status    String
-  createdAt DateTime @default(now())
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model SellerReview {
-  id                  String   @id @default(cuid())
-  rating              Int
-  review              String
-  userId              String
-  storeId             String
-  orderId             String
-  communicationRating Int      @default(3)
-  shippingRating      Int      @default(3)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, storeId, orderId])
-}
-
-model StoreFollower {
-  id        String   @id @default(cuid())
-  userId    String
-  storeId   String
-  createdAt DateTime @default(now())
-  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, storeId])
-}
-
-model SearchOptimization {
-  id             String   @id @default(cuid())
-  storeId        String   @unique
-  searchKeywords String[]
-  searchCount    Int      @default(0)
-  lastIndexed    DateTime @updatedAt
-  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-}
-
-model Service {
-  id               String   @id @default(cuid())
-  name             String   @unique
-  slug             String   @unique
-  shortDescription String?
-  description      String?
-  image            String?
-  price            Float?
-  status           String   @default("ACTIVE")
-  isFeatured       Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-}
-
-model Banner {
-  id        String    @id @default(cuid())
-  title     String
-  subtitle  String?
-  image     String
-  link      String?
-  placement String    @default("HOME")
-  status    String    @default("DRAFT")
-  startsAt  DateTime?
-  endsAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-}
-
-model PortfolioProject {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  category    String
-  clientName  String?
-  description String?
-  image       String?
-  status      String   @default("DRAFT")
-  isFeatured  Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model BlogCategory {
-  id        String     @id @default(cuid())
-  name      String     @unique
-  slug      String     @unique
-  createdAt DateTime   @default(now())
-  posts     BlogPost[]
-}
-
-model BlogPost {
-  id             String        @id @default(cuid())
-  title          String
-  slug           String        @unique
-  excerpt        String?
-  content        String
-  coverImage     String?
-  authorId       String?
-  categoryId     String?
-  status         String        @default("DRAFT")
-  featured       Boolean       @default(false)
-  views          Int           @default(0)
-  publishedAt    DateTime?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  author         User?         @relation(fields: [authorId], references: [id])
-  category       Category?     @relation(fields: [categoryId], references: [id])
-  blogCategory   BlogCategory? @relation(fields: [blogCategoryId], references: [id])
-  blogCategoryId String?
-}
-
-model Page {
+model WardHandover {
   id              String   @id @default(cuid())
-  title           String
-  slug            String   @unique
-  body            String?
-  metaTitle       String?
-  metaDescription String?
-  status          String   @default("DRAFT")
+  handoverDate    DateTime @db.Date
+  shift           String
+  nurseInChargeId String
+  status          String   @default("IN_PROGRESS")
+  payload         Json     @default("{}")
+  formVersion     String   @default("1")
+  outgoingNicId   String?
+  incomingNicId   String?
+  signedOffAt     DateTime?
+  pdfData         Bytes?
+  pdfGeneratedAt  DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@unique([handoverDate, shift])
+  @@index([status, handoverDate])
 }
 
-model NewsletterSubscriber {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  status    String   @default("SUBSCRIBED")
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SystemSetting {
+model WardAuditEvent {
   id          String   @id @default(cuid())
-  key         String   @unique
-  value       String
-  description String?
+  actorUserId String?
+  actorEmail  String?
+  action      String
+  recordId    String?
+  device      String?
+  details     Json?
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@index([actorEmail, createdAt])
+  @@index([recordId, createdAt])
 }
 
-model PaymentMethodConfig {
+model WardConfiguration {
   id        String   @id @default(cuid())
-  name      String   @unique
-  type      String   @default("card")
-  status    String   @default("ACTIVE")
+  key       String   @unique
+  value     Json
+  version   Int      @default(1)
+  updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model ShippingMethodConfig {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  price     Float    @default(0)
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
+model WardSession {
+  id             String   @id @default(cuid())
+  userId         String
+  tokenHash      String
+  lastActivityAt DateTime @default(now())
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
 
-model TaxSetting {
-  id        String   @id @default(cuid())
-  country   String   @default("NG")
-  rate      Float    @default(7.5)
-  isEnabled Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AddressChangeAlert {
-  id         String   @id @default(cuid())
-  orderId    String
-  storeId    String
-  userId     String
-  oldAddress Json
-  newAddress Json
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
 }

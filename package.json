@@ -1,5 +1,5 @@
 {
-  "name": "teknova",
+  "name": "nic-safety-briefing-handover",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,23 +14,13 @@
     "@neondatabase/serverless": "^0.10.4",
     "@prisma/adapter-neon": "^7.3.0",
     "@prisma/client": "^7.8.0",
-    "@reduxjs/toolkit": "^2.8.2",
     "axios": "^1.13.2",
-    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
-    "inngest": "^3.54.2",
     "lucide-react": "^0.525.0",
     "next": "^16.0.7",
-    "openai": "^6.10.0",
-    "paystack": "^2.0.1",
     "postcss": "^8.5.6",
-    "pusher": "^5.0.2",
-    "pusher-js": "^7.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-hot-toast": "^2.5.2",
-    "react-redux": "^9.2.0",
-    "recharts": "^3.1.2",
     "ws": "^8.19.0"
   },
   "devDependencies": {

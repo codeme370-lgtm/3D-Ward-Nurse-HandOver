@@ -1,0 +1,171 @@
+import {
+  Accessibility,
+  Activity,
+  Ambulance,
+  Baby,
+  Bandage,
+  BedDouble,
+  Brain,
+  BriefcaseMedical,
+  Building,
+  CalendarDays,
+  CheckCircle,
+  CirclePlus,
+  CircleX,
+  Cross,
+  Droplet,
+  FileCheck2,
+  FileText,
+  Footprints,
+  HandHeart,
+  HeartCrack,
+  HeartPulse,
+  Hospital,
+  Pill,
+  PillBottle,
+  ShieldCheck,
+  Stethoscope,
+  Syringe,
+  TriangleAlert,
+  Truck,
+  Users,
+  UsersRound,
+} from "lucide-react";
+
+const icons = {
+  people: UsersRound,
+  bed: BedDouble,
+  warning: TriangleAlert,
+  discharge: CheckCircle,
+  trolley: BriefcaseMedical,
+  calendar: CalendarDays,
+  building: Building,
+  transport: Ambulance,
+  escort: Users,
+  activity: Activity,
+  dnar: HeartCrack,
+  palliative: HandHeart,
+  fastTrack: Truck,
+  redTray: BriefcaseMedical,
+  fallsRisk: Footprints,
+  confusion: Brain,
+  enhanceCare: HeartPulse,
+  mentalHealth: Brain,
+  disability: Accessibility,
+  learningDisability: Brain,
+  caregiver: HandHeart,
+  adolescent: Baby,
+  forms: FileCheck2,
+  guardian: Users,
+  pressureDamage: Bandage,
+  infection: CirclePlus,
+  safeguarding: ShieldCheck,
+  fasting: CircleX,
+  imaging: Activity,
+  theatre: Cross,
+  tci: CalendarDays,
+  feed: Syringe,
+  blood: Droplet,
+  medication: PillBottle,
+  tta: BriefcaseMedical,
+  incident: TriangleAlert,
+  report: FileText,
+  poc: HandHeart,
+  drain: Syringe,
+  line: Syringe,
+  hospital: Hospital,
+  record: FileText,
+  notes: FileText,
+  clinical: Stethoscope,
+};
+
+const fieldIcons = {
+  patients: "people",
+  emptyBeds: "bed",
+  amber: "warning",
+  discharge: "discharge",
+  staffing: "people",
+  news: "warning",
+  equipmentUsed: "trolley",
+  equipmentChecked: "trolley",
+  equipmentNotes: "trolley",
+  appointments: "calendar",
+  externalAppointments: "building",
+  transport: "transport",
+  escorts: "escort",
+  bedRest: "bed",
+  levelDuration: "activity",
+  concern: "warning",
+  nbm: "fasting",
+  imaging: "imaging",
+  emergencyTheatre: "theatre",
+  tci: "tci",
+  ng: "feed",
+  nj: "feed",
+  rig: "feed",
+  tpn: "feed",
+  peg: "feed",
+  jTube: "feed",
+  preOpBlood: "blood",
+  postOpBlood: "blood",
+  generalBlood: "blood",
+  bloodProduct: "blood",
+  ivInfusion: "feed",
+  cdSchedule3: "medication",
+  tta: "tta",
+  specificInstructions: "drain",
+  cvc: "line",
+  picc: "line",
+  hospitalTransport: "transport",
+  reference: "record",
+  flap: "clinical",
+  checksFrequency: "activity",
+  clinicalConcerns: "warning",
+  complaint: "warning",
+  incidentReport: "incident",
+  datixReference: "report",
+  idhPoc: "poc",
+  note: "notes",
+};
+
+const concernIcons = {
+  dnar: "dnar",
+  "palliative patient": "palliative",
+  "fast track": "fastTrack",
+  "red tray": "redTray",
+  "falls risk": "fallsRisk",
+  "confusion / delirium": "confusion",
+  "enhance care": "enhanceCare",
+  "mental health pt": "mentalHealth",
+  disability: "disability",
+  "learning disability": "learningDisability",
+  "care giver": "caregiver",
+  adolescent: "adolescent",
+  "forms completed": "forms",
+  "guardian / parent": "guardian",
+  "pressure damage": "pressureDamage",
+  "infection control": "infection",
+  safeguarding: "safeguarding",
+};
+
+export function getWardFieldIconName(fieldKey) {
+  return fieldIcons[fieldKey] || "clinical";
+}
+
+export function getWardConcernIconName(label) {
+  return concernIcons[String(label || "").trim().toLowerCase()] || "clinical";
+}
+
+export default function WardClinicalIcon({ name = "clinical", size = 18, className = "" }) {
+  const Icon = icons[name] || icons.clinical;
+  return (
+    <Icon
+      aria-hidden="true"
+      className={`wh-clinical-icon ${className}`.trim()}
+      data-icon={name}
+      focusable="false"
+      size={size}
+      strokeWidth={2.2}
+    />
+  );
+}

@@ -1,0 +1,137 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+import { ArrowLeft, CheckCircle2, HeartPulse, ShieldCheck } from "lucide-react";
+
+export default function RequestAccessPage() {
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const passwordRules = [
+    { label: "12+ characters", passed: password.length >= 12 },
+    { label: "Upper & lower case", passed: /[a-z]/.test(password) && /[A-Z]/.test(password) },
+    { label: "A number", passed: /\d/.test(password) },
+    { label: "A symbol", passed: /[^A-Za-z0-9]/.test(password) },
+  ];
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    setError("");
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") || "").trim();
+    if (!email.toLowerCase().endsWith("@nhs.net")) {
+      setError("Use your Trust NHS email address to request access.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const response = await fetch("/api/ward/access-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          staffNumber: formData.get("staffNumber"),
+          email,
+          role: formData.get("role"),
+          approverName: formData.get("approverName"),
+          password,
+          confirmPassword,
+          trainingCompleted: formData.get("trainingCompleted") === "on",
+          confidentialityAccepted: formData.get("confidentialityAccepted") === "on",
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Unable to submit your access request.");
+      setSubmitted(true);
+      setPassword("");
+      setConfirmPassword("");
+    } catch (submitError) {
+      setError(submitError.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="wh-auth-page">
+      <aside className="wh-auth-visual">
+        <div className="wh-auth-trust"><HeartPulse size={21} /><span><strong>Barts Health</strong><small>NHS Trust · Ward 3D</small></span></div>
+        <div className="wh-auth-title"><h1>3D NURSE IN CHARGE</h1><h2>Safety Briefing &amp; Handover</h2><p>Create your account to join the Ward 3D team. Access is approved by your ward manager.</p><div className="wh-wecare-mini">{["W", "E", "C", "A", "R", "E"].map((item, index) => <span key={index}>{item}</span>)}</div></div>
+        <small className="wh-auth-credit">Created by Theresa Nkansah · WECARE values</small>
+      </aside>
+
+      <section className="wh-auth-form-shell">
+        <div className="wh-auth-form">
+            <div className="wh-auth-steps"><span /><span /><span /></div>
+            {submitted ? (
+              <div className="wh-auth-success">
+                <CheckCircle2 size={44} />
+                <h2>Request submitted</h2>
+                <p>Your access request has been saved as pending. You can sign in after a ward manager or administrator approves it.</p>
+                <Link href="/sign-in" className="wh-auth-submit">Return to sign in</Link>
+              </div>
+            ) : (
+              <>
+                <p className="wh-auth-kicker">ACCESS REQUEST</p>
+                <h2 className="wh-auth-heading">Request access</h2>
+                <p className="wh-auth-intro">Create your account. Your ward manager will approve it before you can sign in.</p>
+                <form className="wh-auth-fields" onSubmit={handleSubmit}>
+                  <div className="wh-auth-grid">
+                    <label>Full name
+                      <input name="name" required autoComplete="name" placeholder="As on your Trust ID" />
+                    </label>
+                    <label>Staff number
+                      <input name="staffNumber" required placeholder="e.g. 123456" />
+                    </label>
+                  </div>
+                  <label>NHS email
+                    <input type="email" name="email" required autoComplete="email" placeholder="name@nhs.net" />
+                  </label>
+                  <div className="wh-auth-grid">
+                    <label>Role requested
+                      <select name="role" required defaultValue="">
+                        <option value="" disabled>Select role</option>
+                        <option value="NIC">NIC</option>
+                        <option value="Ward staff">Ward staff</option>
+                        <option value="Ward manager">Ward manager</option>
+                      </select>
+                    </label>
+                    <label>Ward
+                      <select name="ward" defaultValue="3D" disabled><option value="3D">3D</option></select>
+                    </label>
+                  </div>
+                  <label>Line manager / approver
+                    <input name="approverName" required placeholder="Name of your ward manager" />
+                  </label>
+                  <div className="wh-auth-grid">
+                    <label>Create password
+                      <span className="wh-password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" placeholder="At least 12 characters" required /><button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button></span>
+                    </label>
+                    <label>Confirm password
+                      <input type={showPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" placeholder="Re-enter password" required />
+                    </label>
+                  </div>
+                  <div className="wh-password-rules">{passwordRules.map((rule) => <span className={rule.passed ? "passed" : ""} key={rule.label}>{rule.label}</span>)}</div>
+                  <label className="wh-auth-checkbox"><input type="checkbox" name="trainingCompleted" required /><span>I have completed Trust information governance (IG) training.</span></label>
+                  <label className="wh-auth-checkbox"><input type="checkbox" name="confidentialityAccepted" required /><span>I will keep patient information confidential and follow the Trust acceptable use policy.</span></label>
+                  {error && <p role="alert" className="wh-auth-error">{error}</p>}
+                  <button type="submit" className="wh-auth-submit" disabled={busy}>{busy ? "Submitting request…" : "Request access"}</button>
+                </form>
+                <p className="wh-auth-switch">Already have an account? <Link href="/sign-in">Sign in</Link></p>
+              </>
+            )}
+        </div>
+      </section>
+    </main>
+  );
+}

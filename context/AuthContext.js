@@ -5,21 +5,6 @@ import axios from 'axios'
 
 const AuthContext = createContext(null)
 
-function parseSessionCookie() {
-  if (typeof window === 'undefined') return null
-  const cookie = document.cookie
-    .split('; ')
-    .find((item) => item.startsWith('session='))
-  if (!cookie) return null
-  try {
-    const decoded = atob(cookie.split('=')[1])
-    return JSON.parse(decoded)
-  } catch (error) {
-    console.error('Invalid session cookie', error)
-    return null
-  }
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -30,6 +15,7 @@ export function AuthProvider({ children }) {
       const { data } = await axios.get('/api/auth/me')
       setUser(data.user ?? null)
     } catch (error) {
+      console.error('Unable to load Ward 3D session', error)
       setUser(null)
     } finally {
       setLoading(false)
@@ -46,12 +32,6 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const signUp = async (payload) => {
-    const { data } = await axios.post('/api/auth/signup', payload)
-    if (data.user) setUser(data.user)
-    return data
-  }
-
   const signOut = async () => {
     await axios.post('/api/auth/logout')
     setUser(null)
@@ -64,7 +44,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, refreshUser, getToken }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, refreshUser, getToken }}>
       {children}
     </AuthContext.Provider>
   )

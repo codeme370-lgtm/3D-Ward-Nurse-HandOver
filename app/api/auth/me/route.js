@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getSessionFromRequest } from '@/lib/authHelpers'
-import prisma from '@/lib/prisma'
+import { getWardUser } from '@/lib/wardAuth'
 
 export async function GET(request) {
   try {
-    const session = getSessionFromRequest(request)
-    if (!session || !session.id) return NextResponse.json({ user: null })
-
-    const user = await prisma.user.findUnique({ where: { id: session.id } })
-    if (!user) return NextResponse.json({ user: null })
-
+    const user = await getWardUser(request)
     return NextResponse.json({ user })
-  } catch (err) {
-    console.error(err)
-    return NextResponse.json({ user: null })
+  } catch (error) {
+    console.error('Unable to verify Ward 3D session:', error)
+    return NextResponse.json({ error: 'Unable to verify your Ward 3D session.' }, { status: 500 })
   }
 }

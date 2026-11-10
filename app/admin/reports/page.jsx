@@ -1,14 +1,5 @@
-import ReportsClient from './ReportsClient'
+import WardHandoverApp from "../../WardHandoverApp";
 
-export const metadata = {
-  title: "Reports - Admin",
-  description: "Admin panel for generating and viewing reports on Cyrus Graphics.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-}
-
-export default function AdminReportsPage() {
-  return <ReportsClient />
+export default function ReportsPage() {
+  return <WardHandoverApp />;
 }
