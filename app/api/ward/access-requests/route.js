@@ -13,7 +13,6 @@ export async function GET(request) {
     }
 
     const requests = await prisma.wardAccessRequest.findMany({
-      where: { status: "PENDING" },
       select: {
         id: true,
         name: true,
@@ -22,9 +21,12 @@ export async function GET(request) {
         requestedRole: true,
         ward: true,
         approverName: true,
+        status: true,
+        grantedRole: true,
+        decisionReason: true,
         requestedAt: true,
       },
-      orderBy: { requestedAt: "asc" },
+      orderBy: { requestedAt: "desc" },
     });
     await writeWardAudit({ user, request, action: "Viewed access requests" });
     return NextResponse.json({ requests });

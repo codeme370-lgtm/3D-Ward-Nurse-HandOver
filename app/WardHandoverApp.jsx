@@ -549,7 +549,7 @@ export default function WardHandoverApp() {
   const adminWorkspace = isAdmin && activeScreens.some(({ id }) => id === screen);
   const isLocked = activeRecord?.status === "SIGNED_OFF";
   const activeHandoverFormConfig = activeRecord?.payload?.formConfigSnapshot || formConfig;
-  const pendingCount = accessRequests.length;
+  const pendingCount = accessRequests.filter((request) => request.status === "PENDING").length;
   const filteredRecords = records;
   const filteredUsers = useMemo(() => users.filter((item) => {
     const matchesText = `${item.name} ${item.email} ${item.role}`.toLowerCase().includes(search.toLowerCase());
@@ -828,13 +828,15 @@ export default function WardHandoverApp() {
         method: "PATCH",
         body: JSON.stringify({ decision, reason, ...(decision === "APPROVE" ? { grantedRole } : {}) }),
       });
+      setAccessRequests((current) => current.map((request) => request.id === accessRequest.id
+        ? { ...request, status: decision === "APPROVE" ? "APPROVED" : "DECLINED", grantedRole: decision === "APPROVE" ? grantedRole : null, decisionReason: reason || null }
+        : request));
       setAccessRoleOverrides((current) => {
         const next = { ...current };
         delete next[accessRequest.id];
         return next;
       });
       if (role === "Admin") await loadUsers();
-      else setAccessRequests((current) => current.filter((item) => item.id !== accessRequest.id));
       notify(decision === "APPROVE" ? "Access request approved and audit logged." : "Access request declined and audit logged.");
     } catch (error) {
       notify(error.message);
@@ -1577,9 +1579,11 @@ export default function WardHandoverApp() {
                       <thead><tr><th>REQUEST</th><th>ROLE ASKED</th><th /></tr></thead>
                       <tbody>{accessRequests.map((request) => {
                         const grantedRole = accessRoleOverrides[request.id] || request.requestedRole;
-                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small></td><td><span className={`wh-role-pill ${request.requestedRole.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.requestedRole}</span><select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin"}>Ward manager</option></select></td><td><div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div></td></tr>;
+                        const isPending = request.status === "PENDING";
+                        const statusLabel = { PENDING: "Pending", APPROVED: "Approved", DECLINED: "Declined" }[request.status] || request.status;
+                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small><small className="wh-table-sub">Status: {statusLabel}</small></td><td><span className={`wh-role-pill ${(request.grantedRole || request.requestedRole).toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.grantedRole || request.requestedRole}</span>{isPending && <select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin"}>Ward manager</option></select>}</td><td>{isPending && <div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div>}</td></tr>;
                       })}</tbody>
-                    </table>{!accessRequests.length && <div className="wh-empty">No access requests are waiting.</div>}</div>
+                    </table>{!accessRequests.length && <div className="wh-empty">No access requests have been submitted.</div>}</div>
                   </article>
                 </div>
                 {newUserDialogOpen && role === "Admin" && <div className="wh-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingUser) setNewUserDialogOpen(false); }}>
