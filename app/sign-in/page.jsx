@@ -52,14 +52,14 @@ export default function SignInPage() {
         <div className="wh-auth-form wh-signin-form">
           <p className="wh-auth-kicker">WARD 3D · AUTHORISED STAFF</p>
           <h2 className="wh-auth-heading">Sign in</h2>
-          <p className="wh-auth-intro">Use your Trust account to open the Ward 3D handover.</p>
-          <button type="button" className="wh-auth-submit wh-sso-button" onClick={() => setError("Trust single sign-on has not been configured for this deployment. Use your approved NHS email and password.")}>
+          <p className="wh-auth-intro">Use your account to open the Ward 3D handover.</p>
+          <button type="button" className="wh-auth-submit wh-sso-button" onClick={() => setError("Single sign-on has not been configured for this deployment. Sign in with your email address and password.")}>
             <ShieldCheck size={17} /> Sign in with Trust account (single sign-on)
           </button>
           <div className="wh-auth-divider"><span>or sign in with email</span></div>
           <form className="wh-auth-fields" onSubmit={handleSubmit}>
-            <label>NHS email
-              <input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@nhs.net" required />
+            <label>Email address
+              <input type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@gmail.com" required />
             </label>
             <label>Password
               <span className="wh-password-field"><input type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Enter your password" required /><button type="button" onClick={() => setShowPassword((value) => !value)}>{showPassword ? "Hide" : "Show"}</button></span>

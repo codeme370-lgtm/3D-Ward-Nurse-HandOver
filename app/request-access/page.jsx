@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, HeartPulse, ShieldCheck } from "lucide-react";
+import { CheckCircle2, HeartPulse } from "lucide-react";
 
 export default function RequestAccessPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -24,10 +24,6 @@ export default function RequestAccessPage() {
     setError("");
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") || "").trim();
-    if (!email.toLowerCase().endsWith("@nhs.net")) {
-      setError("Use your Trust NHS email address to request access.");
-      return;
-    }
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -42,8 +38,6 @@ export default function RequestAccessPage() {
           name: formData.get("name"),
           staffNumber: formData.get("staffNumber"),
           email,
-          role: formData.get("role"),
-          approverName: formData.get("approverName"),
           password,
           confirmPassword,
           trainingCompleted: formData.get("trainingCompleted") === "on",
@@ -51,7 +45,7 @@ export default function RequestAccessPage() {
         }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Unable to submit your access request.");
+      if (!response.ok) throw new Error(data.error || "Unable to create your account.");
       setSubmitted(true);
       setPassword("");
       setConfirmPassword("");
@@ -66,7 +60,7 @@ export default function RequestAccessPage() {
     <main className="wh-auth-page">
       <aside className="wh-auth-visual">
         <div className="wh-auth-trust"><HeartPulse size={21} /><span><strong>Barts Health</strong><small>NHS Trust · Ward 3D</small></span></div>
-        <div className="wh-auth-title"><h1>3D NURSE IN CHARGE</h1><h2>Safety Briefing &amp; Handover</h2><p>Create your account to join the Ward 3D team. Access is approved by your ward manager.</p><div className="wh-wecare-mini">{["W", "E", "C", "A", "R", "E"].map((item, index) => <span key={index}>{item}</span>)}</div></div>
+        <div className="wh-auth-title"><h1>3D NURSE IN CHARGE</h1><h2>Safety Briefing &amp; Handover</h2><p>Create your account to join the Ward 3D team. Your account is activated immediately.</p><div className="wh-wecare-mini">{["W", "E", "C", "A", "R", "E"].map((item, index) => <span key={index}>{item}</span>)}</div></div>
         <small className="wh-auth-credit">Created by Theresa Nkansah · WECARE values</small>
       </aside>
 
@@ -76,15 +70,15 @@ export default function RequestAccessPage() {
             {submitted ? (
               <div className="wh-auth-success">
                 <CheckCircle2 size={44} />
-                <h2>Request submitted</h2>
-                <p>Your access request has been saved as pending. You can sign in after a ward manager or administrator approves it.</p>
+                <h2>Account created</h2>
+                <p>Your account is active now. You can sign in immediately.</p>
                 <Link href="/sign-in" className="wh-auth-submit">Return to sign in</Link>
               </div>
             ) : (
               <>
-                <p className="wh-auth-kicker">ACCESS REQUEST</p>
-                <h2 className="wh-auth-heading">Request access</h2>
-                <p className="wh-auth-intro">Create your account. Your ward manager will approve it before you can sign in.</p>
+                <p className="wh-auth-kicker">CREATE ACCOUNT</p>
+                <h2 className="wh-auth-heading">Create your account</h2>
+                <p className="wh-auth-intro">Use your email address and create an account for immediate Ward staff access.</p>
                 <form className="wh-auth-fields" onSubmit={handleSubmit}>
                   <div className="wh-auth-grid">
                     <label>Full name
@@ -94,24 +88,11 @@ export default function RequestAccessPage() {
                       <input name="staffNumber" required placeholder="e.g. 123456" />
                     </label>
                   </div>
-                  <label>NHS email
-                    <input type="email" name="email" required autoComplete="email" placeholder="name@nhs.net" />
+                  <label>Email address
+                    <input type="email" name="email" required autoComplete="email" placeholder="name@gmail.com" />
                   </label>
-                  <div className="wh-auth-grid">
-                    <label>Role requested
-                      <select name="role" required defaultValue="">
-                        <option value="" disabled>Select role</option>
-                        <option value="NIC">NIC</option>
-                        <option value="Ward staff">Ward staff</option>
-                        <option value="Ward manager">Ward manager</option>
-                      </select>
-                    </label>
-                    <label>Ward
-                      <select name="ward" defaultValue="3D" disabled><option value="3D">3D</option></select>
-                    </label>
-                  </div>
-                  <label>Line manager / approver
-                    <input name="approverName" required placeholder="Name of your ward manager" />
+                  <label>Ward
+                    <input value="Ward 3D" disabled />
                   </label>
                   <div className="wh-auth-grid">
                     <label>Create password
@@ -125,7 +106,7 @@ export default function RequestAccessPage() {
                   <label className="wh-auth-checkbox"><input type="checkbox" name="trainingCompleted" required /><span>I have completed Trust information governance (IG) training.</span></label>
                   <label className="wh-auth-checkbox"><input type="checkbox" name="confidentialityAccepted" required /><span>I will keep patient information confidential and follow the Trust acceptable use policy.</span></label>
                   {error && <p role="alert" className="wh-auth-error">{error}</p>}
-                  <button type="submit" className="wh-auth-submit" disabled={busy}>{busy ? "Submitting request…" : "Request access"}</button>
+                  <button type="submit" className="wh-auth-submit" disabled={busy}>{busy ? "Creating account…" : "Create account"}</button>
                 </form>
                 <p className="wh-auth-switch">Already have an account? <Link href="/sign-in">Sign in</Link></p>
               </>

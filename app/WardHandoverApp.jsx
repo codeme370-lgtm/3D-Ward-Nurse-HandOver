@@ -549,7 +549,7 @@ export default function WardHandoverApp() {
   const adminWorkspace = isAdmin && activeScreens.some(({ id }) => id === screen);
   const isLocked = activeRecord?.status === "SIGNED_OFF";
   const activeHandoverFormConfig = activeRecord?.payload?.formConfigSnapshot || formConfig;
-  const pendingCount = accessRequests.filter((request) => request.status === "PENDING").length;
+  const pendingCount = accessRequests.length;
   const filteredRecords = records;
   const filteredUsers = useMemo(() => users.filter((item) => {
     const matchesText = `${item.name} ${item.email} ${item.role}`.toLowerCase().includes(search.toLowerCase());
@@ -828,15 +828,13 @@ export default function WardHandoverApp() {
         method: "PATCH",
         body: JSON.stringify({ decision, reason, ...(decision === "APPROVE" ? { grantedRole } : {}) }),
       });
-      setAccessRequests((current) => current.map((request) => request.id === accessRequest.id
-        ? { ...request, status: decision === "APPROVE" ? "APPROVED" : "DECLINED", grantedRole: decision === "APPROVE" ? grantedRole : null, decisionReason: reason || null }
-        : request));
       setAccessRoleOverrides((current) => {
         const next = { ...current };
         delete next[accessRequest.id];
         return next;
       });
       if (role === "Admin") await loadUsers();
+      else setAccessRequests((current) => current.filter((item) => item.id !== accessRequest.id));
       notify(decision === "APPROVE" ? "Access request approved and audit logged." : "Access request declined and audit logged.");
     } catch (error) {
       notify(error.message);
@@ -1579,18 +1577,16 @@ export default function WardHandoverApp() {
                       <thead><tr><th>REQUEST</th><th>ROLE ASKED</th><th /></tr></thead>
                       <tbody>{accessRequests.map((request) => {
                         const grantedRole = accessRoleOverrides[request.id] || request.requestedRole;
-                        const isPending = request.status === "PENDING";
-                        const statusLabel = { PENDING: "Pending", APPROVED: "Approved", DECLINED: "Declined" }[request.status] || request.status;
-                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small><small className="wh-table-sub">Status: {statusLabel}</small></td><td><span className={`wh-role-pill ${(request.grantedRole || request.requestedRole).toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.grantedRole || request.requestedRole}</span>{isPending && <select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin"}>Ward manager</option></select>}</td><td>{isPending && <div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div>}</td></tr>;
+                        return <tr key={request.id}><td>{request.name}<small className="wh-table-sub">{request.email}</small></td><td><span className={`wh-role-pill ${request.requestedRole.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{request.requestedRole}</span><select aria-label={`Grant role to ${request.name}`} value={grantedRole} onChange={(event) => setAccessRoleOverrides((current) => ({ ...current, [request.id]: event.target.value }))}><option>Ward staff</option><option>NIC</option><option disabled={role !== "Admin"}>Ward manager</option></select></td><td><div className="wh-user-actions"><button className="primary" disabled={role === "Ward manager" && grantedRole === "Ward manager"} onClick={() => decideAccessRequest(request, "APPROVE")}>Approve</button><button className="danger" onClick={() => decideAccessRequest(request, "DECLINE")}>Decline</button></div></td></tr>;
                       })}</tbody>
-                    </table>{!accessRequests.length && <div className="wh-empty">No access requests have been submitted.</div>}</div>
+                    </table>{!accessRequests.length && <div className="wh-empty">No access requests are waiting.</div>}</div>
                   </article>
                 </div>
                 {newUserDialogOpen && role === "Admin" && <div className="wh-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !savingUser) setNewUserDialogOpen(false); }}>
                   <form className="wh-record-modal wh-add-user-dialog" role="dialog" aria-modal="true" aria-labelledby="wh-add-user-title" onSubmit={createWardUser}>
                     <div className="wh-panel-heading between"><div><p className="wh-eyebrow">WARD 3D · ACCESS CONTROL</p><h2 id="wh-add-user-title">Add user</h2></div><button type="button" className="wh-icon-button" aria-label="Close dialog" disabled={savingUser} onClick={() => setNewUserDialogOpen(false)}><X size={18} /></button></div>
                     <label className="wh-field"><span>Full name</span><input required maxLength={120} value={newUser.name} onChange={(event) => setNewUser((current) => ({ ...current, name: event.target.value }))} /></label>
-                    <label className="wh-field"><span>NHS email</span><input required type="email" pattern=".+@nhs\\.net" value={newUser.email} onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))} /></label>
+                    <label className="wh-field"><span>Email address</span><input required type="email" value={newUser.email} onChange={(event) => setNewUser((current) => ({ ...current, email: event.target.value }))} /></label>
                     <label className="wh-field"><span>Staff number</span><input maxLength={40} value={newUser.staffNumber} onChange={(event) => setNewUser((current) => ({ ...current, staffNumber: event.target.value }))} /></label>
                     <label className="wh-field"><span>Role</span><select value={newUser.role} onChange={(event) => setNewUser((current) => ({ ...current, role: event.target.value }))}>{["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor"].map((item) => <option key={item}>{item}</option>)}</select></label>
                     <label className="wh-field"><span>Initial password</span><input required type="password" minLength={12} value={newUser.password} onChange={(event) => setNewUser((current) => ({ ...current, password: event.target.value }))} /><small>At least 12 characters with upper/lower case, a number and a symbol.</small></label>
@@ -1774,7 +1770,7 @@ export default function WardHandoverApp() {
             </div>
             <p className="wh-page-description">The incoming Nurse in Charge must verify using their own active Ward 3D account. Their password is used only for this confirmation.</p>
             <div className="wh-signoff-dialog-fields">
-              <Field label="Incoming NIC NHS email" type="email" value={form.incomingEmail} onChange={(event) => updateForm("incomingEmail", event.target.value)} disabled={saving} placeholder="incoming@nhs.net" />
+              <Field label="Incoming NIC email" type="email" value={form.incomingEmail} onChange={(event) => updateForm("incomingEmail", event.target.value)} disabled={saving} placeholder="incoming@gmail.com" />
               <Field label="Incoming NIC password" type="password" value={form.incomingPassword} onChange={(event) => updateForm("incomingPassword", event.target.value)} disabled={saving} placeholder="Their own password" />
             </div>
             <div className="wh-record-modal-actions">

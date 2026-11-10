@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/authHelpers";
 import { getWardUser, hasWardRole, normalizeWardRole, writeWardAudit } from "@/lib/wardAuth";
+import { isValidWardEmail } from "@/lib/wardEmail";
 
 const wardRoles = ["NIC", "Ward staff", "Ward manager", "Admin", "IG auditor"];
 
@@ -38,8 +39,8 @@ export async function POST(request) {
     const staffNumber = typeof body.staffNumber === "string" ? body.staffNumber.trim() : "";
     const role = typeof body.role === "string" ? body.role : "";
     const password = typeof body.password === "string" ? body.password : "";
-    if (!name || name.length > 120 || !/^[^\s@]+@nhs\.net$/i.test(email) || staffNumber.length > 40 || !wardRoles.includes(role)) {
-      return NextResponse.json({ error: "Enter a valid name, NHS email, staff number and Ward 3D role." }, { status: 400 });
+    if (!name || name.length > 120 || !isValidWardEmail(email) || staffNumber.length > 40 || !wardRoles.includes(role)) {
+      return NextResponse.json({ error: "Enter a valid name, email address, staff number and Ward 3D role." }, { status: 400 });
     }
     if (password.length < 12 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
       return NextResponse.json({ error: "Password must have at least 12 characters, upper and lower case, a number and a symbol." }, { status: 400 });
