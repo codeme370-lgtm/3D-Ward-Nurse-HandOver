@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { HeartPulse, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -15,8 +15,12 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (user) {
+  useEffect(() => {
+    if (!user) return;
     router.replace(user.wardRole === "Super admin" ? "/super-admin" : "/");
+  }, [router, user]);
+
+  if (user) {
     return null;
   }
 
