@@ -1,5 +1,18 @@
 # Super Admin setup
 
+## Required application runtime configuration
+
+Set these server-side environment variables in the Vercel project for every environment that serves the application:
+
+- `DATABASE_URL`: the connection string for the production PostgreSQL database.
+- `WARD_SESSION_SECRET`: a private, random secret used to sign login sessions. Generate at least 32 random bytes (for example, with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`), and store it only in Vercel's environment-variable settings. Do not commit it or expose it as a `NEXT_PUBLIC_` variable.
+
+Apply the committed Prisma migrations to that database with `npx prisma migrate deploy` before deploying application changes that depend on the schema.
+
+If `WARD_SESSION_SECRET` is missing, sign-in cannot issue a secure session cookie.
+
+## Super Admin bootstrap
+
 Super Admin setup is a one-time bootstrap and does not create a Ward access request.
 
 Configure these server-side environment variables in the deployment:

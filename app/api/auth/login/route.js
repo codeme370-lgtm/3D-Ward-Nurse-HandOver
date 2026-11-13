@@ -5,6 +5,14 @@ import { normalizeWardRole, writeWardAudit } from '@/lib/wardAuth'
 
 export async function POST(request) {
   try {
+    if (!process.env.WARD_SESSION_SECRET) {
+      console.error('Sign-in is unavailable because WARD_SESSION_SECRET is not configured.')
+      return NextResponse.json(
+        { error: 'Sign-in is temporarily unavailable because session security is not configured. Contact your administrator.' },
+        { status: 503 },
+      )
+    }
+
     const body = await request.json()
     const { email, password } = body
 
