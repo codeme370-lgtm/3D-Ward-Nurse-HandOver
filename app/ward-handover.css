@@ -335,20 +335,47 @@
 }
 
 .wh-public-brand strong {
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.1;
 }
 
 .wh-public-brand small {
   margin-top: 2px;
   color: #71809a;
-  font-size: 11px;
+  font-size: 9px;
 }
 
 .wh-public-title {
   color: #233e8e;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
+}
+
+.wh-public-header-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.wh-public-admin-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--wh-blue);
+  border-radius: 7px;
+  background: var(--wh-blue);
+  padding: 0 12px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wh-admin-access-button {
+  flex: 0 0 auto;
 }
 
 .wh-public-tabs {
@@ -365,25 +392,43 @@
   background: #d7e0f3;
   padding: 6px 13px 4px;
   color: #536687;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
 }
 
-.wh-public-tabs a.active {
+.wh-public-tabs button {
+  min-height: 26px;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  background: #d7e0f3;
+  padding: 6px 13px 4px;
+  color: #536687;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.wh-public-tabs a.active,
+.wh-public-tabs button.active {
   background: var(--wh-blue);
   color: #fff;
+}
+
+.wh-public-tabs button:disabled {
+  cursor: default;
 }
 
 .wh-public-cover {
   display: flex;
   width: calc(100% - 36px);
-  height: calc(100vh - 100px);
-  min-height: calc(100vh - 100px);
+  height: auto;
+  min-height: calc(100vh - 108px);
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   margin: 0 auto 18px;
   border-radius: 0 9px 9px 9px;
   background: #fff;
@@ -391,7 +436,8 @@
 
 .wh-public-cover-heading {
   display: flex;
-  min-height: 174px;
+  min-height: 158px;
+  flex: 0 0 158px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -404,7 +450,7 @@
 .wh-public-cover-heading > span {
   margin-bottom: 4px;
   color: #d6e0ff;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: .32em;
 }
@@ -412,7 +458,7 @@
 .wh-public-cover-heading h1 {
   margin: 0;
   color: #ffce37;
-  font-size: clamp(38px, 4.5vw, 54px);
+  font-size: clamp(38px, 4vw, 48px);
   font-weight: 800;
   letter-spacing: -.025em;
   line-height: 1.12;
@@ -421,24 +467,29 @@
 .wh-public-cover-heading h2 {
   margin: 2px 0 4px;
   color: #fff;
-  font-size: clamp(25px, 2.5vw, 32px);
+  font-size: clamp(25px, 2.7vw, 32px);
   font-weight: 700;
 }
 
 .wh-public-cover-heading p {
   margin: 1px 0 0;
   color: #d2def8;
-  font-size: 17px;
+  font-size: 14px;
 }
 
 .wh-public-cover-image {
   position: relative;
   display: flex;
   min-height: 0;
-  flex: 1;
+  flex: 1 0 auto;
+  aspect-ratio: 1754 / 720;
   align-items: flex-end;
   justify-content: center;
-  background: linear-gradient(0deg, #0d234b65, transparent 22%), url("../assets/background_cover.jpg") center top / 100% 100% no-repeat;
+  background-color: #dce5f4;
+  background-image: linear-gradient(0deg, #0d234b65, transparent 22%), url("../assets/background_cover.jpg");
+  background-position: center;
+  background-size: contain;
+  background-repeat: no-repeat;
 }
 
 .wh-public-cover-image > small {
@@ -465,7 +516,7 @@
   border: 1px solid transparent;
   border-radius: 7px;
   padding: 0 20px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   text-decoration: none;
 }
@@ -493,7 +544,7 @@
   gap: 10px;
   padding: 0 14px;
   color: #78859e;
-  font-size: 10px;
+  font-size: 9px;
 }
 
 .wh-public-cover-footer a {
@@ -509,6 +560,26 @@
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.wh-public-cover-footer button {
+  display: inline-flex;
+  min-height: 31px;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 6px;
+  background: #2447a6;
+  padding: 0 13px;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.wh-public-cover-footer button:disabled {
+  cursor: default;
+  opacity: 1;
 }
 
 .wh-cover {
@@ -543,7 +614,7 @@
 .wh-cover-overline {
   margin-bottom: 6px;
   color: #d6e0ff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: .32em;
 }
@@ -551,7 +622,7 @@
 .wh-cover-copy h1 {
   margin: 0;
   color: #ffce37;
-  font-size: clamp(30px, 4vw, 48px);
+  font-size: clamp(34px, 4vw, 50px);
   font-weight: 800;
   letter-spacing: -.025em;
   line-height: 1.13;
@@ -560,23 +631,21 @@
 .wh-cover-copy h2 {
   margin: 2px 0 4px;
   color: #fff;
-  font-size: clamp(19px, 2.2vw, 28px);
+  font-size: clamp(22px, 2.4vw, 30px);
   font-weight: 700;
 }
 
 .wh-cover-copy p {
   margin: 1px 0 0;
   color: #d2def8;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .wh-cover-visual {
   position: relative;
   min-height: clamp(360px, 48vh, 520px);
   overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 20%, #faf6ea 0 11%, transparent 11.5%),
-    linear-gradient(180deg, #b8c5d5 0 19%, #cad5e1 19% 34%, #6580a6 35% 48%, #d2dbe3 49% 100%);
+  background: url("../assets/background_cover.jpg") center / cover no-repeat;
 }
 
 .wh-cover-visual::before {
@@ -768,7 +837,7 @@
   gap: 10px;
   padding: 0 14px;
   color: #78859e;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-cover-status {
@@ -804,7 +873,7 @@
 }
 
 .wh-form-topbar .wh-brand small {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .wh-form-topbar .wh-topbar-title {
@@ -824,7 +893,7 @@
   align-items: center;
   gap: 8px;
   color: #20365f;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -841,7 +910,7 @@
   background: transparent;
   padding: 3px 5px;
   color: #63769a;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-form-meta > label:last-child input {
@@ -907,7 +976,7 @@
 
 .wh-reference-panel > .wh-panel-heading h2 {
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .12em;
   line-height: 1.3;
@@ -927,7 +996,7 @@
   align-items: center;
   gap: 6px;
   color: #273b67;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-structured-field > span:first-child {
@@ -958,7 +1027,7 @@
   background: transparent;
   padding: 1px 3px;
   color: #263a63;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-structured-field > input:focus,
@@ -1026,7 +1095,7 @@
 
 .wh-briefing-page .wh-grid-4 .wh-field > span {
   color: #273b67;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .wh-briefing-page .wh-grid-4 .wh-field input {
@@ -1035,7 +1104,7 @@
   min-height: 25px;
   height: 25px;
   padding: 3px 5px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-briefing-page .wh-field-spaced {
@@ -1050,7 +1119,7 @@
 }
 
 .wh-briefing-page .wh-field-spaced .wh-field > span {
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .wh-briefing-page .wh-field-spaced textarea {
@@ -1061,7 +1130,7 @@
   border-bottom: 1px solid #c5d0e8;
   border-radius: 0;
   padding: 2px 3px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-briefing-page .wh-field-spaced textarea::placeholder {
@@ -1111,7 +1180,7 @@
   border-radius: 0;
   background: repeating-linear-gradient(to bottom, transparent 0 23px, #c5d0e8 23px 24px);
   padding: 3px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-news-entry textarea::placeholder {
@@ -1133,7 +1202,7 @@
   align-items: center;
   gap: 6px;
   color: #273b67;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1145,7 +1214,7 @@
   border-radius: 0;
   background: transparent;
   color: #273b67;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .wh-briefing-page .wh-equipment-fields + .wh-field-spaced {
@@ -1174,7 +1243,7 @@
   border-bottom: 1px solid #7d93cd;
   background: #f7f9fd;
   color: #273b67;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -1263,7 +1332,7 @@
 
 .wh-concern-select strong {
   overflow: hidden;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1277,7 +1346,7 @@
   background: transparent;
   padding: 3px 8px;
   color: #273b67;
-  font-size: 9px;
+  font-size: 12px;
 }
 
 .wh-concern-row > input::placeholder {
@@ -1296,7 +1365,7 @@
 .wh-briefing-page .wh-form-navigation .wh-button,
 .wh-specialist-page .wh-form-navigation .wh-button {
   min-height: 29px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .wh-specialist-grid {
@@ -3482,16 +3551,24 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .wh-public-header-actions {
+    gap: 6px;
+  }
+  .wh-public-admin-button {
+    min-height: 32px;
+    padding: 0 8px;
+  }
   .wh-public-tabs {
     min-height: 42px;
     overflow-x: auto;
     gap: 3px;
     padding: 7px 8px 0;
   }
-  .wh-public-tabs a {
+  .wh-public-tabs a,
+  .wh-public-tabs button {
     min-height: 34px;
     padding: 11px 11px 0;
-    font-size: 10px;
+    font-size: 12px;
   }
   .wh-public-cover {
     width: calc(100% - 20px);
@@ -3502,19 +3579,20 @@
   }
   .wh-public-cover-heading {
     min-height: 139px;
+    flex-basis: 139px;
     padding: 16px 10px;
   }
   .wh-public-cover-heading > span {
-    font-size: 9px;
+    font-size: 12px;
   }
   .wh-public-cover-heading h1 {
     font-size: clamp(23px, 7vw, 36px);
   }
   .wh-public-cover-heading h2 {
-    font-size: clamp(17px, 5vw, 22px);
+    font-size: clamp(19px, 5vw, 24px);
   }
   .wh-public-cover-heading p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .wh-public-cover-image {
     min-height: 390px;
@@ -3528,12 +3606,12 @@
   .wh-public-button {
     min-height: 38px;
     padding: 0 13px;
-    font-size: 11px;
+    font-size: 14px;
   }
   .wh-public-cover-footer {
     align-items: flex-start;
     padding: 9px 10px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .wh-topbar {
     min-height: 58px;
@@ -3626,16 +3704,16 @@
     padding: 16px 10px;
   }
   .wh-cover-overline {
-    font-size: 9px;
+    font-size: 11px;
   }
   .wh-cover-copy h1 {
-    font-size: clamp(23px, 7vw, 36px);
+    font-size: clamp(27px, 7vw, 39px);
   }
   .wh-cover-copy h2 {
-    font-size: clamp(17px, 5vw, 22px);
+    font-size: clamp(19px, 5vw, 24px);
   }
   .wh-cover-copy p {
-    font-size: 11px;
+    font-size: 14px;
   }
   .wh-cover-visual {
     min-height: 390px;
@@ -3693,8 +3771,8 @@
     min-height: 42px;
     flex: 1;
     gap: 5px;
-    padding: 0 7px;
-    font-size: 10px;
+    padding: 0 9px;
+    font-size: 13px;
   }
   .wh-cover-actions .wh-button svg {
     width: 15px;
@@ -3704,7 +3782,7 @@
     flex-direction: column;
     gap: 5px;
     padding: 9px 11px;
-    font-size: 9px;
+    font-size: 11px;
   }
   .wh-page-title {
     align-items: flex-start;
@@ -4126,6 +4204,10 @@
   min-height: 100%;
   flex-direction: column;
   gap: 12px;
+}
+
+.wh-cover-actions .wh-button {
+  font-size: 15px;
 }
 
 .wh-record-filterbar {
@@ -5619,8 +5701,9 @@
     font-size: 16px;
   }
 
-  .wh-public-tabs a {
-    font-size: 11px;
+  .wh-public-tabs a,
+  .wh-public-tabs button {
+    font-size: 12px;
   }
 
   .wh-public-cover {
@@ -5629,6 +5712,7 @@
 
   .wh-public-cover-heading {
     min-height: 155px;
+    flex-basis: 155px;
   }
 
   .wh-public-cover-heading > span {
@@ -5640,18 +5724,19 @@
   }
 
   .wh-public-cover-heading h2 {
-    font-size: clamp(20px, 5vw, 27px);
+    font-size: clamp(21px, 5vw, 28px);
   }
 
   .wh-public-cover-heading p {
-    font-size: 14px;
+    font-size: 15px;
   }
 
   .wh-public-cover-image {
     aspect-ratio: 1754 / 720;
     min-height: 0;
     flex: 0 0 auto;
-    background-size: 100% 100%;
+    background-position: center;
+    background-size: contain;
   }
 
   .wh-public-cover-actions {
@@ -5662,11 +5747,11 @@
   .wh-public-button {
     min-height: 42px;
     padding: 0 14px;
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .wh-public-cover-footer {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .wh-ward-admin-app .wh-dashboard-workspace .wh-sidebar {
@@ -5711,5 +5796,109 @@
     gap: 9px;
     padding: 15px 22px;
     font-size: 12px;
+  }
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+body > .wh-app,
+body > .wh-auth-page,
+body > .wh-auth-loading {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 0 auto;
+}
+
+.wh-auth-visual,
+.wh-auth-form-shell {
+  min-height: 0;
+}
+
+.wh-shared-footer {
+  flex: 0 0 auto;
+}
+
+.wh-shared-footer-main {
+  align-items: start;
+  row-gap: clamp(24px, 3vw, 36px);
+}
+
+.wh-reference-form,
+.wh-signoff-page {
+  height: auto;
+  min-height: 0;
+}
+
+.wh-reference-form .wh-form-grid {
+  flex: 0 0 auto;
+  min-height: 0;
+  gap: clamp(12px, 1.5vw, 20px);
+}
+
+.wh-briefing-page .wh-briefing-grid,
+.wh-specialist-page .wh-specialist-grid {
+  grid-template-rows: repeat(5, auto);
+}
+
+.wh-signoff-layout {
+  min-height: 0;
+  flex: 0 0 auto;
+  gap: clamp(14px, 1.5vw, 20px);
+}
+
+.wh-signoff-right {
+  min-height: 0;
+  grid-template-rows: repeat(3, auto);
+  gap: clamp(12px, 1.5vw, 18px);
+}
+
+.wh-reference-form > .wh-form-navigation {
+  flex-shrink: 0;
+  margin-block-start: clamp(14px, 1.5vw, 20px);
+}
+
+.wh-ward-admin-app {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.wh-ward-admin-app .wh-dashboard-workspace {
+  min-height: 0;
+}
+
+.wh-ward-admin-app .wh-dashboard-workspace .wh-sidebar {
+  height: auto;
+}
+
+.wh-ward-admin-app .wh-dashboard-content,
+.wh-ward-admin-app .wh-admin-page-main,
+.wh-ward-admin-app .wh-dashboard-main-area {
+  height: auto;
+  min-height: 0;
+  overflow: visible;
+}
+
+.wh-ward-admin-app .wh-admin-page-main,
+.wh-ward-admin-app .wh-dashboard-main-area {
+  padding-bottom: clamp(28px, 4vw, 48px) !important;
+}
+
+@media (max-width: 650px) {
+  .wh-auth-visual {
+    min-height: 230px;
+  }
+
+  .wh-auth-form-shell {
+    min-height: 0;
   }
 }

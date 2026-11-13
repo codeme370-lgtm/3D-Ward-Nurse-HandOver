@@ -64,7 +64,7 @@ function CoverDateTime({ timeOnly = false }) {
 
   if (!now) return <span aria-live="off">Loading current time</span>;
 
-  const time = now.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+  const time = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
   if (timeOnly) return <time dateTime={now.toISOString()}>{time}</time>;
 
   const date = now.toLocaleDateString("en-GB", {
@@ -73,14 +73,22 @@ function CoverDateTime({ timeOnly = false }) {
     month: "long",
     year: "numeric",
   });
-  return (
-    <span>
-      Ward 3D · Start of shift briefing · <time dateTime={now.toISOString()}>{time}</time> · {date}
-    </span>
-  );
+  return <span>Ward 3D · Start of shift briefing · <time dateTime={now.toISOString()}>{time}</time> · {date}</span>;
 }
 
-function PublicCoverPage() {
+function CoverPage({
+  authenticated = false,
+  activeScreen = "cover",
+  availableScreens = [],
+  onNavigate,
+  onAdminAction,
+  onPrimaryAction,
+  onSecondaryAction,
+  onSignOut,
+  toast = "",
+  onDismissToast,
+  primaryLabel = "Start new handover",
+}) {
   return (
     <main className="wh-app wh-public-cover-page">
       <header className="wh-public-topbar">
@@ -89,37 +97,75 @@ function PublicCoverPage() {
           <small>NHS Trust · Ward 3D</small>
         </Link>
         <div className="wh-public-title">NIC Safety Briefing &amp; Handover</div>
+        {authenticated && (
+          <div className="wh-public-header-actions">
+            <button type="button" className="wh-public-admin-button" onClick={onAdminAction}><Shield size={15} /> Admin</button>
+            <button type="button" className="wh-icon-button" onClick={onSignOut} aria-label="Sign out"><LogOut size={17} /></button>
+          </div>
+        )}
       </header>
       <nav className="wh-public-tabs" aria-label="Handover sections">
-        {nurseScreens.map(({ id, label }) => (
-          <Link
-            key={id}
-            className={id === "cover" ? "active" : ""}
-            href={id === "cover" ? "/" : "/sign-in"}
-            aria-current={id === "cover" ? "page" : undefined}
-          >
-            {label}
-          </Link>
-        ))}
+        {nurseScreens.map(({ id, label }) => {
+          const active = id === activeScreen;
+          if (authenticated) {
+            return (
+              <button
+                key={id}
+                type="button"
+                className={active ? "active" : ""}
+                disabled={!active && !availableScreens.includes(id)}
+                onClick={() => onNavigate(id)}
+                aria-current={active ? "page" : undefined}
+              >
+                {label}
+              </button>
+            );
+          }
+          return (
+            <Link
+              key={id}
+              className={active ? "active" : ""}
+              href={id === "cover" ? "/" : "/sign-in"}
+              aria-current={active ? "page" : undefined}
+            >
+              {label}
+            </Link>
+          );
+        })}
       </nav>
       <section className="wh-public-cover">
         <div className="wh-public-cover-heading">
           <span>BARTS HEALTH NHS TRUST</span>
           <h1>3D NURSE IN CHARGE</h1>
           <h2>Safety Briefing &amp; Handover</h2>
-          <p><CoverDateTime /></p>
+          <p>Ward 3D · Start of shift briefing · <CoverDateTime timeOnly /></p>
         </div>
-        <div className="wh-public-cover-image">
+        <div className="wh-public-cover-image" role="group" aria-label="Nursing team sharing a patient safety handover">
           <div className="wh-public-cover-actions">
-            <Link className="wh-public-button primary" href="/sign-in">Start new handover</Link>
-            <Link className="wh-public-button secondary" href="/sign-in">Open previous shift</Link>
+            {authenticated ? (
+              <>
+                <button className="wh-public-button primary" onClick={onPrimaryAction}>{primaryLabel}</button>
+                <button className="wh-public-button secondary" onClick={onSecondaryAction}>Open previous shift</button>
+              </>
+            ) : (
+              <>
+                <Link className="wh-public-button primary" href="/sign-in">Start new handover</Link>
+                <Link className="wh-public-button secondary" href="/sign-in">Open previous shift</Link>
+              </>
+            )}
           </div>
+          <small className="wh-cover-credit">Created by Theresa Nkansah</small>
         </div>
         <footer className="wh-public-cover-footer">
           <span>Ward 3D · NIC Safety Briefing &amp; Handover · Contains patient information</span>
-          <Link href="/sign-in">Start briefing <ArrowRight size={15} /></Link>
+          {authenticated ? (
+            <button type="button" onClick={() => onNavigate("briefing")} disabled={!availableScreens.includes("briefing")}>Start briefing <ArrowRight size={15} /></button>
+          ) : (
+            <Link href="/sign-in">Start briefing <ArrowRight size={15} /></Link>
+          )}
         </footer>
       </section>
+      {toast && <div className="wh-toast" role="status"><ShieldCheck size={18} />{toast}<button type="button" onClick={onDismissToast} aria-label="Dismiss"><X size={15} /></button></div>}
     </main>
   );
 }
@@ -546,6 +592,7 @@ export default function WardHandoverApp() {
   const autoSaveQueue = useRef(Promise.resolve());
 
   const isAdmin = role === "Ward manager" || role === "Admin" || role === "IG auditor" || role === "All access";
+  const adminHomeScreen = role === "Ward manager" || role === "All access" ? "dashboard" : role === "Admin" ? "users" : role === "IG auditor" ? "audit" : null;
   const activeScreens = role === "All access" ? allAccessScreens : role === "Ward manager" ? managerScreens : role === "Admin" ? administratorScreens : role === "IG auditor" ? adminScreens.filter(({ id }) => id === "audit") : nurseScreens;
   const adminWorkspace = isAdmin && activeScreens.some(({ id }) => id === screen);
   const isLocked = activeRecord?.status === "SIGNED_OFF";
@@ -1155,7 +1202,38 @@ export default function WardHandoverApp() {
   }
 
   if (!user) {
-    return <PublicCoverPage />;
+    return <CoverPage />;
+  }
+
+  if (screen === "cover" && (!isAdmin || ["Ward manager", "All access"].includes(role))) {
+    const canStartHandover = role === "NIC" || role === "All access";
+    return (
+      <CoverPage
+        authenticated
+        activeScreen={screen}
+        availableScreens={activeScreens.map(({ id }) => id)}
+        onNavigate={setScreen}
+        onAdminAction={() => {
+          if (adminHomeScreen) setScreen(adminHomeScreen);
+          else notify("Admin access is restricted. Contact a ward administrator.");
+        }}
+        onSignOut={signOutUser}
+        toast={toast}
+        onDismissToast={() => setToast("")}
+        primaryLabel={canStartHandover && activeRecord?.status === "IN_PROGRESS" ? "Resume handover" : canStartHandover ? "Start new handover" : "View current handover"}
+        onPrimaryAction={() => {
+          if (canStartHandover) startHandover();
+          else if (role === "Ward manager") setScreen("records");
+          else if (activeRecord) setScreen("briefing");
+          else notify("There is no current handover available to view.");
+        }}
+        onSecondaryAction={() => {
+          if (role === "Ward manager" || role === "All access") setScreen("records");
+          else if (activeRecord) setScreen("briefing");
+          else notify("No current handover has been started for this shift.");
+        }}
+      />
+    );
   }
 
   return (
@@ -1176,6 +1254,10 @@ export default function WardHandoverApp() {
           </div>
         )}
         <div className="wh-topbar-tools">
+          <button type="button" className="wh-button primary compact wh-admin-access-button" onClick={() => {
+            if (adminHomeScreen) setScreen(adminHomeScreen);
+            else notify("Admin access is restricted. Contact a ward administrator.");
+          }}><Shield size={15} /> Admin</button>
           <span className="wh-secure-label"><ShieldCheck size={15} /> Secure workspace</span>
           <span className="wh-user-chip"><Users size={16} /><span><strong>{user.name}</strong><small>{role}</small></span></span>
           <button className="wh-icon-button wh-signout" onClick={signOutUser} aria-label="Sign out"><LogOut size={17} /></button>
@@ -1217,7 +1299,7 @@ export default function WardHandoverApp() {
           {screen === "dashboard" && ["Ward manager", "All access"].includes(role) && (
             <header className="wh-dashboard-header">
               <div><h1>Dashboard</h1><p>Ward 3D overview · {new Date().toLocaleDateString("en-GB", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</p></div>
-              <div><button className="wh-icon-button wh-dashboard-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle administration menu"><Menu size={17} /></button><button className="wh-button secondary compact" onClick={refreshDashboard} disabled={loadingScreen}><Activity size={14} className={loadingScreen ? "wh-spin" : ""} /> {loadingScreen ? "Refreshing…" : "Refresh"}</button><span className="wh-data-mode">Live data</span></div>
+              <div><button className="wh-button secondary compact" onClick={() => setScreen(adminHomeScreen)}>Admin</button><button className="wh-icon-button wh-dashboard-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle administration menu"><Menu size={17} /></button><button className="wh-button secondary compact" onClick={refreshDashboard} disabled={loadingScreen}><Activity size={14} className={loadingScreen ? "wh-spin" : ""} /> {loadingScreen ? "Refreshing…" : "Refresh"}</button><span className="wh-data-mode">Live data</span></div>
             </header>
           )}
           {adminWorkspace && screen !== "dashboard" && (
@@ -1227,6 +1309,7 @@ export default function WardHandoverApp() {
                 <p>{screen === "records" ? "Search, open and print past handovers" : screen === "users" ? "Who can see and do what" : screen === "form-settings" ? "Change the handover form without a developer" : screen === "reports" ? "Trends across shifts · no patient identifiers" : screen === "audit" ? "Who viewed, edited, signed off or exported" : "How long records are kept and how they are protected"}</p>
               </div>
               <div className="wh-admin-header-actions">
+                {adminHomeScreen && <button className="wh-button secondary compact" onClick={() => setScreen(adminHomeScreen)}>Admin</button>}
                 <button className="wh-icon-button wh-dashboard-menu-button" onClick={() => setMenuOpen((open) => !open)} aria-label="Toggle administration menu"><Menu size={16} /></button>
                 {screen === "records" && <button className="wh-button secondary compact" onClick={downloadRecordList}><Download size={15} /> Export list</button>}
                 {screen === "users" && ["Admin", "All access"].includes(role) && <button className="wh-button primary compact" onClick={() => setNewUserDialogOpen(true)}><Plus size={15} /> Add user</button>}
@@ -1239,40 +1322,6 @@ export default function WardHandoverApp() {
             </header>
           )}
           <div className={`wh-main ${["briefing", "specialist", "signoff"].includes(screen) ? "wh-reference-main" : ""} ${screen === "dashboard" ? "wh-dashboard-main-area" : adminWorkspace ? "wh-admin-page-main" : ""}`}>
-            {screen === "cover" && (!isAdmin || ["Ward manager", "All access"].includes(role)) && (
-              <section className="wh-cover">
-                <div className="wh-cover-hero">
-                  <div className="wh-cover-copy">
-                    <span className="wh-cover-overline">BARTS HEALTH NHS TRUST</span>
-                    <h1>3D NURSE IN CHARGE</h1>
-                    <h2>Safety Briefing &amp; Handover</h2>
-                    <p><CoverDateTime /></p>
-                  </div>
-                  <div className="wh-cover-visual" aria-hidden="true">
-                    <div className="wh-visual-hospital"><span>WARD 3D</span><span><CoverDateTime timeOnly /></span><span>SHIFT SAFETY</span></div>
-                    <div className="wh-visual-team">
-                      <div className="wh-nurse-card"><span className="wh-nurse-portrait p1">✚</span><span>SAFETY FIRST</span></div>
-                      <div className="wh-nurse-card"><span className="wh-nurse-portrait p2">✚</span><span>ONE TEAM</span></div>
-                      <div className="wh-nurse-card"><span className="wh-nurse-portrait p3">✚</span><span>EVERY SHIFT</span></div>
-                      <div className="wh-nurse-card"><span className="wh-nurse-portrait p4">✚</span><span>HERE FOR YOU</span></div>
-                    </div>
-                    <div className="wh-visual-overlay">
-                      <span><CheckCircle2 size={17} /> Safe handover. Shared understanding.</span>
-                      <span><Activity size={17} /> Patient safety starts with us.</span>
-                    </div>
-                  </div>
-                  <div className="wh-cover-actions">
-                    {role === "NIC" || role === "All access" ? <button className="wh-button primary" onClick={startHandover}><ClipboardCheck size={18} /> {activeRecord?.status === "IN_PROGRESS" ? "Resume handover" : "Start new handover"} <ArrowRight size={17} /></button> : <button className="wh-button primary" onClick={() => role === "Ward manager" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("There is no current handover available to view.")}><FileText size={18} /> View current handover</button>}
-                    <button className="wh-button secondary" onClick={() => role === "Ward manager" || role === "All access" ? setScreen("records") : activeRecord ? setScreen("briefing") : notify("No current handover has been started for this shift.")}><FileText size={18} /> {role === "Ward manager" || role === "All access" ? "Open handover records" : "Open current shift"}</button>
-                  </div>
-                </div>
-                <div className="wh-cover-footer">
-                  <span>Ward 3D · NIC Safety Briefing &amp; Handover · Patient information is confidential</span>
-                  <span className="wh-cover-status"><span /> Ready for briefing</span>
-                </div>
-              </section>
-            )}
-
             {screen === "briefing" && (!isAdmin || role === "All access") && (
               <section className="wh-reference-form wh-briefing-page">
                 <div className="wh-form-grid wh-briefing-grid">
